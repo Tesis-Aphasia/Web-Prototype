@@ -1,0 +1,13 @@
+/* Importa las fuentes si no están ya en un archivo global o en el index.html */
+@import url('https://fonts.googleapis.com/css2?display=swap&family=Noto+Sans:wght@400;500;700;900&family=Spline+Sans:wght@400;500;700');
+
+/* Define la variable CSS si no está disponible globalmente */
+:root {
+  --accent-color: #F97316;
+}
+
+/* No hay CSS adicional necesario aquí, ya que la mayoría de los estilos se manejan con Tailwind
+   y las lógicas de selección de tarjeta se manejan con clases condicionales en JSX. */
+
+/* Si en el futuro necesitas añadir estilos muy específicos que no se puedan manejar con Tailwind
+   o selectores complejos, los añadirías aquí. */
