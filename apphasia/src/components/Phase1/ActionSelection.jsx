@@ -1,129 +1,119 @@
-import React, { useState } from 'react';
-import './ActionSelection.css'; // Importa el CSS específico
+import React, { useState } from "react";
+import "./ActionSelection.css";
 
 const ActionSelection = ({ onNext, onPrevious }) => {
-  const [selectedWho, setSelectedWho] = useState(''); // Valor inicial del HTML
-  const [selectedWhat, setSelectedWhat] = useState(''); // Valor inicial del HTML
+  const [selectedWho, setSelectedWho] = useState("");
+  const [selectedWhat, setSelectedWhat] = useState("");
 
-  const handleWhoChange = (who) => {
-    setSelectedWho(who);
-  };
-
-  const handleWhatChange = (what) => {
-    setSelectedWhat(what);
-  };
-
-  const handleNextClick = () => {
-    // Pasa las selecciones al componente padre
-    onNext({ who: selectedWho, what: selectedWhat });
-  };
-
-  const handlePreviousClick = () => {
-    onPrevious();
-  };
+  const handleNextClick = () => onNext({ who: selectedWho, what: selectedWhat });
 
   return (
-    <div className="relative flex size-full min-h-screen flex-col bg-white">
-      {/* Estilo de fuente directamente en el div principal para encapsular */}
-      <main className="flex h-full w-full flex-col" style={{ fontFamily: '"Inter", "Spline Sans", sans-serif' }}>
-        <div className="flex-1 bg-white">
-          <div className="mx-auto flex h-full max-w-lg flex-col px-4 pt-8 pb-20 md:px-8">
-            <div className="mb-8">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-zinc-600">Fase 1</p>
-                <p className="text-sm font-medium text-zinc-600">1/4</p> {/* Esto es 1/4 pero es la fase 1 de un ejercicio de 4 (debería ser 1/4 general) */}
-              </div>
-              <div className="mt-2 h-2 w-full rounded-full bg-zinc-200">
-                <div className="h-2 w-1/4 rounded-full bg-zinc-900"></div>
+    // Fondo negro y teléfono centrado
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+      {/* Marco de teléfono con tamaño fijo (usa las vars definidas en el CSS) */}
+      <div className="phone-frame">
+        {/* Contenido con scroll si se excede la altura del “teléfono” */}
+        <main className="flex-1 overflow-y-auto p-6">
+          <h1 className="text-3xl font-bold text-center mb-8">
+            Elige ¿quién? y ¿qué?
+          </h1>
+
+          {/* Verbo/acción centrada */}
+          <div className="mb-8 flex w-full items-center justify-center rounded-xl bg-zinc-900 p-6 text-white shadow-lg">
+            <span className="text-3xl font-bold">Correr</span>
+          </div>
+
+          {/* Dos columnas en md, una en móvil */}
+          <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2">
+            <div className="w-full">
+              <h2 className="mb-4 text-center text-2xl font-bold">¿QUIÉN?</h2>
+              <div className="space-y-4">
+                <ButtonRadio
+                  text="La niña"
+                  isSelected={selectedWho === "La niña"}
+                  onClick={() => setSelectedWho("La niña")}
+                />
+                <ButtonRadio
+                  text="El niño"
+                  isSelected={selectedWho === "El niño"}
+                  onClick={() => setSelectedWho("El niño")}
+                />
+                <ButtonRadio
+                  text="El perro"
+                  isSelected={selectedWho === "El perro"}
+                  onClick={() => setSelectedWho("El perro")}
+                />
               </div>
             </div>
-            <div className="flex flex-1 flex-col items-center justify-center">
-              <div className="mb-12 flex w-full flex-col items-center">
-                <div className="flex w-full items-center justify-center rounded-xl bg-zinc-900 p-8 text-white shadow-lg">
-                  <span className="text-4xl font-bold">Correr</span>
-                </div>
-              </div>
-              <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2">
-                {/* Columna ¿QUIÉN? */}
-                <div className="w-full">
-                  <h2 className="mb-4 text-center text-2xl font-bold text-zinc-900">¿QUIÉN?</h2>
-                  <div className="space-y-4">
-                    <ButtonRadio
-                      text="La niña"
-                      isSelected={selectedWho === 'La niña'}
-                      onClick={() => handleWhoChange('La niña')}
-                    />
-                    <ButtonRadio
-                      text="El niño"
-                      isSelected={selectedWho === 'El niño'}
-                      onClick={() => handleWhoChange('El niño')}
-                    />
-                    <ButtonRadio
-                      text="El perro"
-                      isSelected={selectedWho === 'El perro'}
-                      onClick={() => handleWhoChange('El perro')}
-                    />
-                  </div>
-                </div>
-                {/* Columna ¿QUÉ? */}
-                <div className="w-full">
-                  <h2 className="mb-4 text-center text-2xl font-bold text-zinc-900">¿QUÉ?</h2>
-                  <div className="space-y-4">
-                    <ButtonRadio
-                      text="Una pelota"
-                      isSelected={selectedWhat === 'Una pelota'}
-                      onClick={() => handleWhatChange('Una pelota')}
-                    />
-                    <ButtonRadio
-                      text="Un libro"
-                      isSelected={selectedWhat === 'Un libro'}
-                      onClick={() => handleWhatChange('Un libro')}
-                    />
-                    <ButtonRadio
-                      text="Un juguete"
-                      isSelected={selectedWhat === 'Un juguete'}
-                      onClick={() => handleWhatChange('Un juguete')}
-                    />
-                  </div>
-                </div>
+
+            <div className="w-full">
+              <h2 className="mb-4 text-center text-2xl font-bold">¿QUÉ?</h2>
+              <div className="space-y-4">
+                <ButtonRadio
+                  text="Una pelota"
+                  isSelected={selectedWhat === "Una pelota"}
+                  onClick={() => setSelectedWhat("Una pelota")}
+                />
+                <ButtonRadio
+                  text="Un libro"
+                  isSelected={selectedWhat === "Un libro"}
+                  onClick={() => setSelectedWhat("Un libro")}
+                />
+                <ButtonRadio
+                  text="Un juguete"
+                  isSelected={selectedWhat === "Un juguete"}
+                  onClick={() => setSelectedWhat("Un juguete")}
+                />
               </div>
             </div>
           </div>
-        </div>
-        <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-zinc-200 bg-white/80 backdrop-blur-sm">
-          <div className="mx-auto max-w-lg px-4 py-3 md:px-8">
-            <div className="flex justify-between">
+        </main>
+
+        {/* Footer dentro del teléfono con barra de progreso (Fase 1) */}
+        <footer className="border-t border-gray-200 p-4">
+          <div className="w-full">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-gray-600">Fase 1</p>
+              <p className="text-sm font-medium text-gray-600">1/4</p>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5 mb-3">
+              <div
+                className="bg-[var(--orange-accent)] h-2.5 rounded-full"
+                style={{ width: "25%" }}
+              />
+            </div>
+
+            <div className="flex gap-3">
               <button
-                onClick={handlePreviousClick}
-                className="flex min-w-[100px] cursor-pointer items-center justify-center rounded-xl bg-zinc-200 py-3 px-5 text-base font-bold text-zinc-600 transition-colors hover:bg-zinc-300"
+                onClick={onPrevious}
+                className="w-1/2 rounded-lg bg-gray-200 text-gray-700 font-bold py-3 cursor-pointer hover:bg-gray-300 transition-colors"
               >
-                <span>Anterior</span>
+                Anterior
               </button>
               <button
                 onClick={handleNextClick}
-                className="flex min-w-[100px] cursor-pointer items-center justify-center rounded-xl bg-[var(--accent-color)] py-3 px-5 text-base font-bold text-white transition-colors hover:bg-orange-600"
+                className="w-1/2 rounded-lg bg-[var(--orange-accent)] text-white font-bold py-3 cursor-pointer hover:brightness-95 active:scale-[0.98] transition"
               >
-                <span>Siguiente</span>
+                Siguiente
               </button>
             </div>
           </div>
-        </nav>
-      </main>
+        </footer>
+      </div>
     </div>
   );
 };
 
-// Componente auxiliar para los botones de radio personalizados
+// Botón-radio consistente con la pantalla anterior (mismas dimensiones y bordes)
 const ButtonRadio = ({ text, isSelected, onClick }) => {
-  const baseClasses = "flex w-full items-center justify-center rounded-xl p-6 text-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent-color)]";
-  const defaultClasses = "border border-zinc-200 bg-white font-medium text-zinc-900 shadow-sm hover:bg-zinc-50";
-  const selectedClasses = "border-2 border-[var(--accent-color)] bg-orange-50 font-bold text-zinc-900 shadow-md ring-2 ring-[var(--accent-color)] ring-offset-2";
-
+  const base =
+    "flex w-full items-center justify-center rounded-xl p-6 text-lg transition-all focus:outline-none";
+  const normal =
+    "border-2 border-gray-200 bg-white font-medium text-black shadow-sm hover:bg-gray-50 cursor-pointer";
+  const selected =
+    "border-2 border-[var(--orange-accent)] bg-orange-50 font-bold text-black shadow-md ring-2 ring-[var(--orange-accent)] ring-offset-2 cursor-pointer";
   return (
-    <button
-      className={`${baseClasses} ${isSelected ? selectedClasses : defaultClasses}`}
-      onClick={onClick}
-    >
+    <button className={`${base} ${isSelected ? selected : normal}`} onClick={onClick}>
       {text}
     </button>
   );

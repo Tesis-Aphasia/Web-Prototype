@@ -1,15 +1,35 @@
-/* Importa las fuentes si no están ya en un archivo global o en el index.html */
 @import url('https://fonts.googleapis.com/css2?display=swap&family=Inter:wght@400;500;600;700&family=Spline+Sans:wght@400;500;700');
+@import "tailwindcss";
 
-/* Define la variable CSS si no está disponible globalmente */
-:root {
-  --accent-color: #F97316;
+/* Acento consistente */
+:root{
+  --orange-accent:#F97316;
+
+  /* Tamaño del “teléfono” igual para todas las pantallas */
+  --phone-w: 390px; /* ancho */
+  --phone-h: 844px; /* alto */
 }
 
+/* Marco de teléfono reutilizable */
+.phone-frame{
+  width: var(--phone-w);
+  height: var(--phone-h);
+  border-radius: 1.5rem;            /* rounded-3xl */
+  box-shadow: 0 20px 45px rgba(0,0,0,.3);
+  background: #fff;
+  color: #000;
+  overflow: hidden;                 /* oculta rebalse lateral */
+  display: flex;
+  flex-direction: column;           /* footer al fondo */
+}
 
+/* Fallbacks responsivos por si la ventana es muy pequeña */
+@media (max-height: 900px){
+  .phone-frame{ height: calc(100vh - 2rem); }
+}
+@media (max-width: 420px){
+  .phone-frame{ width: calc(100vw - 2rem); }
+}
 
-/* No hay CSS adicional necesario aquí, ya que la mayoría de los estilos se manejan con Tailwind
-   y las lógicas de selección de botón se manejan con clases condicionales en JSX. */
-
-/* Si en el futuro necesitas añadir estilos muy específicos que no se puedan manejar con Tailwind
-   o selectores complejos, los añadirías aquí. */
+/* Por si algún botón pierde el cursor en navegadores raros */
+button{ cursor: pointer; }

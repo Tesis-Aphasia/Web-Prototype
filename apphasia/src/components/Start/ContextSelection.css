@@ -1,37 +1,41 @@
-/* Importa la fuente directamente en este archivo CSS si no la tienes en un archivo global */
-@import url('https://fonts.googleapis.com/css2?family=Spline+Sans:wght@400;500;700&display=swap');
-@import "tailwindcss";
+:root{
+  --orange-accent:#F97316;
 
-
-/* Define la variable CSS si no está disponible globalmente */
-:root {
-  --orange-accent: #F97316;
+  /* tamaño “teléfono” (iPhone 14 aprox.) */
+  --phone-w: 390px; /* ancho */
+  --phone-h: 844px; /* alto */
 }
 
-/* Estilos para el body/contenedor principal del componente si aplica */
-/* body { */
-/*   font-family: 'Spline Sans', sans-serif; */
-/* } */
+/* marco de teléfono reutilizable */
+.phone-frame{
+  width: var(--phone-w);
+  height: var(--phone-h);
+  border-radius: 1.5rem;      /* rounded-3xl */
+  box-shadow: 0 20px 45px rgba(0,0,0,.3);
+  background: #fff;
+  color: #000;
+  overflow: hidden;           /* oculta rebalse lateral */
+  display: flex;
+  flex-direction: column;     /* para fijar footer al fondo */
+}
 
-/* Estilos específicos para las tarjetas de radio */
-.card-radio:checked + label {
+/* fallback responsivo: si la ventana es muy pequeña */
+@media (max-height: 900px){
+  .phone-frame{
+    height: calc(100vh - 2rem); /* deja 1rem de padding arriba/abajo */
+  }
+}
+@media (max-width: 420px){
+  .phone-frame{
+    width: calc(100vw - 2rem);  /* deja 1rem a los lados */
+  }
+}
+
+/* radios como antes */
+.card-radio{ display:none; }
+.card-radio:checked + label{
   border-color: var(--orange-accent);
   box-shadow: 0 0 0 2px var(--orange-accent);
 }
-
-.card-radio:hover + label {
-  border-color: var(--orange-accent);
-}
-
-.card-radio {
-  display: none;
-}
-
-/* Puedes añadir más estilos aquí si necesitas sobrescribir o añadir algo que Tailwind no cubra */
-/* Por ejemplo, si quisieras un estilo de sombra personalizado para las tarjetas: */
-/* .card-label {
-  transition: all 0.2s ease-in-out;
-}
-.card-label:hover {
-  transform: translateY(-2px);
-} */
+.card-radio + label:hover{ border-color: var(--orange-accent); cursor:pointer; }
+button{ cursor:pointer; }

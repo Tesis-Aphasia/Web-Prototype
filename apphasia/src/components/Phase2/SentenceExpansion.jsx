@@ -1,159 +1,267 @@
-import React, { useState, useEffect } from 'react';
-import './SentenceExpansion.css'; // Importa el CSS específico
+import React, { useState } from "react";
+import "./SentenceExpansion.css";
 
-const SentenceExpansion = ({ onNext, onPrevious, selectedContext, selectedActionDetails }) => {
-  // Estados para las selecciones de cada categoría
-  const [selectedWhere, setSelectedWhere] = useState('En el parque'); // Default del HTML
-  const [selectedWhy, setSelectedWhy] = useState('Para divertirse'); // Default del HTML
-  const [selectedWhen, setSelectedWhen] = useState('Por la tarde'); // Default del HTML
+const SentenceExpansion = ({
+  onNext,
+  onPrevious,
+  selectedContext,
+  selectedActionDetails,
+}) => {
+  // Estados por defecto (con la misma capitalización que se muestra en UI)
+  const [selectedWhere, setSelectedWhere] = useState("En el parque");
+  const [selectedWhy, setSelectedWhy] = useState("Para divertirse");
+  const [selectedWhen, setSelectedWhen] = useState("Por la tarde");
 
-  // Un ejemplo de cómo podrías construir la oración base con los datos de las ventanas anteriores
-  // Esto es solo un placeholder, la oración real podría ser más compleja.
-  const baseSentenceSubject = selectedActionDetails?.who || 'El sujeto';
-  const baseSentenceAction = selectedActionDetails?.action || 'hace algo'; // Asumiendo que 'Correr' de la ventana anterior es 'action'
+  // Construcción de la oración (usa datos previos si existen)
+  const baseSentenceSubject = selectedActionDetails?.who || "El sujeto";
+  const baseSentenceAction = selectedActionDetails?.action || "corre"; // ej: "corre"
   const fullSentence = `${baseSentenceSubject} ${baseSentenceAction} ${selectedWhere} ${selectedWhy} ${selectedWhen}.`;
 
-  // useEffect para manejar el cambio de fuentes o variables CSS si es necesario
-  useEffect(() => {
-    // Si necesitas aplicar fuentes o variables CSS específicamente a este componente
-    // y no están manejadas globalmente o por Tailwind, podrías hacerlo aquí.
-    // Por ejemplo, si Spline Sans solo se usa aquí, podrías importar y aplicar al div principal.
-  }, []);
-
-  const handleNextClick = () => {
+  const handleNextClick = () =>
     onNext({ where: selectedWhere, why: selectedWhy, when: selectedWhen });
-  };
 
-  const handlePreviousClick = () => {
-    onPrevious();
-  };
-
-  // Componente auxiliar para los botones de opción (tarjetas)
-  const RadioCard = ({ name, value, isSelected, onChange, children }) => {
+  // Tarjeta tipo radio (mismo look que los botones de pantallas previas)
+  // Tarjeta tipo radio
+  const RadioCard = ({ group, label, value, selected, onChange }) => {
+    const isSelected = selected === value;
+    const base =
+      // inline-flex: ancho según contenido; min-w-fit evita que colapse, nowrap evita saltos de línea.
+      "inline-flex items-center justify-center rounded-xl px-5 py-3 text-lg transition-all select-none whitespace-nowrap min-w-fit";
+    const normal =
+      "border-2 border-gray-200 bg-white font-medium text-black shadow-sm hover:bg-gray-50 cursor-pointer";
+    const active =
+      "border-2 border-[var(--orange-accent)] bg-orange-50 font-bold text-black shadow-md ring-2 ring-[var(--orange-accent)] ring-offset-2 cursor-pointer";
     return (
-      <label
-        className={`card flex items-center justify-center p-4 rounded-lg border-2 text-center cursor-pointer 
-                   ${isSelected ? 'active' : ''}`}
-      >
-        {children}
+      <label className={`${base} ${isSelected ? active : normal}`}>
         <input
           type="radio"
-          name={name}
+          name={group}
           value={value}
           checked={isSelected}
           onChange={() => onChange(value)}
           className="hidden"
         />
+        {label}
       </label>
     );
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      <main className="flex-grow p-4 md:p-6 lg:p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold text-center mb-2">Expande la oración base</h1>
-            <p className="text-gray-500 text-center mb-6">Selecciona una opción para cada categoría para completar la oración.</p>
-            <div className="w-full">
-              <div className="flex justify-between mb-1">
-                <span className="text-base font-medium text-gray-700">Progreso</span>
-                <span className="text-sm font-medium text-gray-700">3/5</span>
-              </div>
-              <div className="w-full progress-bar-bg rounded-full h-2.5">
-                <div className="progress-bar-fill h-2.5 rounded-full" style={{ width: '60%' }}></div>
-              </div>
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+      <div className="phone-frame">
+        <main className="flex-1 overflow-y-auto p-6">
+          <h1 className="text-3xl font-bold text-center mb-8">
+            Completa la oración
+          </h1>
+
+          {selectedActionDetails?.action && (
+            <div className="mb-8 flex w-full items-center justify-center rounded-xl bg-zinc-900 p-6 text-white shadow-lg">
+              <span className="text-3xl font-bold capitalize">
+                {selectedActionDetails.action}
+              </span>
             </div>
-          </div>
+          )}
 
           <div className="space-y-8">
+            {/* ¿DÓNDE? */}
             <section>
-              <h2 className="text-xl font-bold mb-4">1. ¿DÓNDE?</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <RadioCard name="donde" value="en el parque" isSelected={selectedWhere === 'en el parque'} onChange={setSelectedWhere}>
-                  En el parque
-                </RadioCard>
-                <RadioCard name="donde" value="en la biblioteca" isSelected={selectedWhere === 'en la biblioteca'} onChange={setSelectedWhere}>
-                  En la biblioteca
-                </RadioCard>
-                <RadioCard name="donde" value="en casa" isSelected={selectedWhere === 'en casa'} onChange={setSelectedWhere}>
-                  En casa
-                </RadioCard>
-                <RadioCard name="donde" value="en la escuela" isSelected={selectedWhere === 'en la escuela'} onChange={setSelectedWhere}>
-                  En la escuela
-                </RadioCard>
+              <h2 className="text-xl font-bold mb-4 text-center md:text-left">
+                1. ¿DÓNDE?
+              </h2>
+              <div
+                className="horizontal-scroll -mx-6 px-6 flex gap-3 overflow-x-auto whitespace-nowrap snap-x snap-mandatory"
+                role="tablist"
+                aria-label="Opciones de Dónde"
+              >
+                <div className="snap-start">
+                  <RadioCard
+                    group="donde"
+                    label="En el parque"
+                    value="En el parque"
+                    selected={selectedWhere}
+                    onChange={setSelectedWhere}
+                  />
+                </div>
+                <div className="snap-start">
+                  <RadioCard
+                    group="donde"
+                    label="En la biblioteca"
+                    value="En la biblioteca"
+                    selected={selectedWhere}
+                    onChange={setSelectedWhere}
+                  />
+                </div>
+                <div className="snap-start">
+                  <RadioCard
+                    group="donde"
+                    label="En casa"
+                    value="En casa"
+                    selected={selectedWhere}
+                    onChange={setSelectedWhere}
+                  />
+                </div>
+                <div className="snap-start">
+                  <RadioCard
+                    group="donde"
+                    label="En la escuela"
+                    value="En la escuela"
+                    selected={selectedWhere}
+                    onChange={setSelectedWhere}
+                  />
+                </div>
               </div>
             </section>
 
+            {/* ¿POR QUÉ? */}
             <section>
-              <h2 className="text-xl font-bold mb-4">2. ¿POR QUÉ?</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <RadioCard name="porque" value="para estudiar" isSelected={selectedWhy === 'para estudiar'} onChange={setSelectedWhy}>
-                  Para estudiar
-                </RadioCard>
-                <RadioCard name="porque" value="para relajarse" isSelected={selectedWhy === 'para relajarse'} onChange={setSelectedWhy}>
-                  Para relajarse
-                </RadioCard>
-                <RadioCard name="porque" value="para divertirse" isSelected={selectedWhy === 'para divertirse'} onChange={setSelectedWhy}>
-                  Para divertirse
-                </RadioCard>
-                <RadioCard name="porque" value="para trabajar" isSelected={selectedWhy === 'para trabajar'} onChange={setSelectedWhy}>
-                  Para trabajar
-                </RadioCard>
+              <h2 className="text-xl font-bold mb-4 text-center md:text-left">
+                2. ¿POR QUÉ?
+              </h2>
+              <div
+                className="horizontal-scroll -mx-6 px-6 flex gap-3 overflow-x-auto whitespace-nowrap snap-x snap-mandatory"
+                role="tablist"
+                aria-label="Opciones de Por qué"
+              >
+                <div className="snap-start">
+                  <RadioCard
+                    group="porque"
+                    label="Para estudiar"
+                    value="Para estudiar"
+                    selected={selectedWhy}
+                    onChange={setSelectedWhy}
+                  />
+                </div>
+                <div className="snap-start">
+                  <RadioCard
+                    group="porque"
+                    label="Para relajarse"
+                    value="Para relajarse"
+                    selected={selectedWhy}
+                    onChange={setSelectedWhy}
+                  />
+                </div>
+                <div className="snap-start">
+                  <RadioCard
+                    group="porque"
+                    label="Para divertirse"
+                    value="Para divertirse"
+                    selected={selectedWhy}
+                    onChange={setSelectedWhy}
+                  />
+                </div>
+                <div className="snap-start">
+                  <RadioCard
+                    group="porque"
+                    label="Para trabajar"
+                    value="Para trabajar"
+                    selected={selectedWhy}
+                    onChange={setSelectedWhy}
+                  />
+                </div>
               </div>
             </section>
 
+            {/* ¿CUÁNDO? */}
             <section>
-              <h2 className="text-xl font-bold mb-4">3. ¿CUÁNDO?</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <RadioCard name="cuando" value="por la mañana" isSelected={selectedWhen === 'por la mañana'} onChange={setSelectedWhen}>
-                  Por la mañana
-                </RadioCard>
-                <RadioCard name="cuando" value="por la tarde" isSelected={selectedWhen === 'por la tarde'} onChange={setSelectedWhen}>
-                  Por la tarde
-                </RadioCard>
-                <RadioCard name="cuando" value="por la noche" isSelected={selectedWhen === 'por la noche'} onChange={setSelectedWhen}>
-                  Por la noche
-                </RadioCard>
-                <RadioCard name="cuando" value="el fin de semana" isSelected={selectedWhen === 'el fin de semana'} onChange={setSelectedWhen}>
-                  El fin de semana
-                </RadioCard>
+              <h2 className="text-xl font-bold mb-4 text-center md:text-left">
+                3. ¿CUÁNDO?
+              </h2>
+              <div
+                className="horizontal-scroll -mx-6 px-6 flex gap-3 overflow-x-auto whitespace-nowrap snap-x snap-mandatory"
+                role="tablist"
+                aria-label="Opciones de Cuándo"
+              >
+                <div className="snap-start">
+                  <RadioCard
+                    group="cuando"
+                    label="Por la mañana"
+                    value="Por la mañana"
+                    selected={selectedWhen}
+                    onChange={setSelectedWhen}
+                  />
+                </div>
+                <div className="snap-start">
+                  <RadioCard
+                    group="cuando"
+                    label="Por la tarde"
+                    value="Por la tarde"
+                    selected={selectedWhen}
+                    onChange={setSelectedWhen}
+                  />
+                </div>
+                <div className="snap-start">
+                  <RadioCard
+                    group="cuando"
+                    label="Por la noche"
+                    value="Por la noche"
+                    selected={selectedWhen}
+                    onChange={setSelectedWhen}
+                  />
+                </div>
+                <div className="snap-start">
+                  <RadioCard
+                    group="cuando"
+                    label="El fin de semana"
+                    value="El fin de semana"
+                    selected={selectedWhen}
+                    onChange={setSelectedWhen}
+                  />
+                </div>
               </div>
             </section>
           </div>
-        </div>
-      </main>
+        </main>
 
-      <footer className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
-        <div className="max-w-4xl mx-auto">
+        {/* footer igual que antes */}
+        <footer className="border-t border-gray-200 p-4">
           <div className="bg-amber-50 rounded-lg p-4 mb-4 text-center">
-            <h3 className="font-bold text-lg mb-2 text-gray-800">Oración completa:</h3>
+            <h3 className="font-bold text-lg mb-2 text-gray-800">
+              Oración completa:
+            </h3>
             <p className="text-gray-700 text-lg">
-              {/* Aquí usamos los estados y los props para construir la oración dinámicamente */}
-              <span className="font-bold text-[var(--primary-color)]">
+              <span className="font-bold text-[var(--orange-accent)]">
                 {baseSentenceSubject} {baseSentenceAction}
-              </span>{' '}
-              <span className="font-bold text-[var(--primary-color)]">{selectedWhere}</span>{' '}
-              <span className="font-bold text-[var(--primary-color)]">{selectedWhy}</span>{' '}
-              <span className="font-bold text-[var(--primary-color)]">{selectedWhen}</span>.
+              </span>{" "}
+              <span className="font-bold text-[var(--orange-accent)]">
+                {selectedWhere}
+              </span>{" "}
+              <span className="font-bold text-[var(--orange-accent)]">
+                {selectedWhy}
+              </span>{" "}
+              <span className="font-bold text-[var(--orange-accent)]">
+                {selectedWhen}
+              </span>
+              .
             </p>
           </div>
-          <div className="flex justify-between items-center">
+
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-gray-600">Fase 2</p>
+            <p className="text-sm font-medium text-gray-600">2/4</p>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mb-3">
+            <div
+              className="bg-[var(--orange-accent)] h-2.5 rounded-full"
+              style={{ width: "50%" }}
+            />
+          </div>
+
+          <div className="flex gap-3">
             <button
-              onClick={handlePreviousClick}
-              className="btn-secondary font-bold py-3 px-6 rounded-full text-lg"
+              onClick={onPrevious}
+              className="w-1/2 rounded-lg bg-gray-200 text-gray-700 font-bold py-3 cursor-pointer hover:bg-gray-300 transition-colors"
             >
               Anterior
             </button>
             <button
               onClick={handleNextClick}
-              className="btn-primary font-bold py-3 px-6 rounded-full text-lg"
+              className="w-1/2 rounded-lg bg-[var(--orange-accent)] text-white font-bold py-3 cursor-pointer hover:brightness-95 active:scale-[0.98] transition"
             >
               Siguiente
             </button>
           </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 };
