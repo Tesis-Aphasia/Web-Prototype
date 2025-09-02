@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import './ActionSelection.css'; // Importa el CSS específico
 
 const ActionSelection = ({ onNext, onPrevious }) => {
-  const [selectedWho, setSelectedWho] = useState('El perro'); // Valor inicial del HTML
-  const [selectedWhat, setSelectedWhat] = useState('Un libro'); // Valor inicial del HTML
+  const [selectedWho, setSelectedWho] = useState(''); // Valor inicial del HTML
+  const [selectedWhat, setSelectedWhat] = useState(''); // Valor inicial del HTML
 
   const handleWhoChange = (who) => {
     setSelectedWho(who);
