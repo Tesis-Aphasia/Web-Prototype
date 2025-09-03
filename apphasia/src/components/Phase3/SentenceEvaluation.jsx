@@ -214,8 +214,8 @@ const Card = ({ subject, verb, complement, style, className = "", children, ...h
     >
       <div className="max-w-[90%]">
         <p className="text-2xl font-bold text-gray-900 leading-snug">
-          <span className="text-[var(--orange-accent)]">{subject}</span>{" "}
-          <span className="text-gray-800">{verb}</span>{" "}
+          <span className="text-gray-700">{subject}</span>{" "}
+          <span className="text-[var(--orange-accent)]">{verb}</span>{" "}
           <span className="text-gray-700">{complement}</span>
         </p>
       </div>
