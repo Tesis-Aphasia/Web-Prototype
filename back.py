@@ -7,7 +7,7 @@ deployment = "gpt"
 
 subscription_key = ""
 api_version = "2024-12-01-preview"
-prompt = ''' 
+prompt1 = ''' 
 Genera un JSON con la siguiente estructura. No agregues comentarios adicionales, solo el json. 
 Todo el ejercicio debe girar alrededor de un único verbo.
 
@@ -33,25 +33,35 @@ Formato requerido:
         }
       }
     }
-  ]
+  ], 
+    "oraciones": [
+    {
+      "oracion": "string",
+      "correcta": true
+    }]
 }
 
 Reglas importantes:
 
-verbo: el verbo en infinitivo que se va a trabajar en todo el ejercicio. Sin ser genéricos como ‘hacer’ o ‘tener’. Elige el verbo dentro del contexto de ir a un supermercado. 
+verbo: el verbo en infinitivo que se va a trabajar en todo el ejercicio. Sin ser genéricos como ‘hacer’ o ‘tener’. Elige el verbo dentro del contexto de supermercado (comprar, vender, ofertar..). 
 
-pares: debe haber 3 pares correctos, cada uno con el mismo verbo. Los pares tienen libertad creativa no deben estar relacionados con el contexto del supermercado. Deben ser plausibles y únicos en relacion con los otros pares. 
+Debes generar exactamente tres pares en formato:
+sujeto + verbo + complemento, usando SIEMPRE el mismo verbo.
+Condiciones obligatorias: Exclusividad de pares: Cada sujeto debe estar vinculado a un complemento que no pueda ser usado con ningún otro sujeto dentro de los 3 pares. Ningún sujeto debe poder ejecutar la acción sobre el complemento de los otros pares. Especificidad máxima: Los pares deben ser tan concretos y únicos que sea imposible intercambiar sujeto y complemento sin perder el sentido. Variedad: Los tres pares deben ser totalmente diferentes en su contexto y tema. Pueden ser creativos y no tienen que estar relacionados entre sí.
 
 Cada par tiene:
-
-sujeto (quién hace la acción), no uses pronombres ni nombres propios. 
-
-objeto (qué recibe la acción).
-
+sujeto (quién hace la acción), no uses pronombres ni nombres propios. Puede ser una persona, rol, profesión, animal, entidad o cosa.  
+complemento (qué recibe la acción), la entidad sobre la que recae la acción en relacion al sujeto. Puede ser un objeto, una persona o un tema. Tiene que tener sentido que el sujeto realice la acción sobre el complemento.
 expansiones → 3 preguntas: dónde, cuándo, por qué.
-
 Cada expansión debe tener exactamente 4 opciones, con solo 1 opción correcta (opcion_correcta).
+
+Por ultimo: 
+Usando el mismo verbo, crea exactamente 10 oraciones con sujeto + verbo + complemento (simple). Haz que las oraciones sean simples.
+Mezcla frases con sentido (correctas) y sin sentido (incorrectas, invertidas o absurdas). En todas las oraciones conjuga bien el verbo, y aún si estuviera mal conjugado no cuentes eso como error. 
+
  '''
+
+
 
 client = AzureOpenAI(
     api_version=api_version,
@@ -67,7 +77,7 @@ response = client.chat.completions.create(
         },
         {
             "role": "user",
-            "content": prompt
+            "content": prompt1
         }
     ],
     max_tokens=4096,
