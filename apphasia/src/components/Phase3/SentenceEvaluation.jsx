@@ -1,156 +1,239 @@
-import React, { useState, useEffect } from 'react';
-import './SentenceEvaluation.css'; // Importa el CSS específico
+import React, { useMemo, useState, useRef } from "react";
+import "./SentenceEvaluation.css";
 
-// Componente para una tarjeta de oración individual
-const SentenceCard = ({ subject, verb, complement, isSelected, onSelect, onAccept, onReject }) => {
-  const baseClasses = "flex cursor-pointer items-center justify-between rounded-lg p-4 shadow-sm transition-all";
-  const defaultClasses = "border border-gray-200 bg-white hover:border-[var(--accent-color)] hover:shadow-md";
-  const selectedClasses = "border border-[var(--accent-color)] bg-orange-50 shadow-md ring-2 ring-[var(--accent-color)]/20";
+const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
+  // Dataset de ejemplo (puedes inyectarlo por props si prefieres)
+  const initial = useMemo(
+    () => ([
+      { id: 1, subject: "La niña",    verb: "corre",        complement: "en el parque",     status: "pending" },
+      { id: 2, subject: "El niño",    verb: "lee",          complement: "en la biblioteca",  status: "pending" },
+      { id: 3, subject: "El perro",   verb: "conduce",      complement: "un coche",          status: "pending" }, // incorrecta
+      { id: 4, subject: "La maestra", verb: "enseña",       complement: "en la escuela",     status: "pending" },
+      { id: 5, subject: "El chef",    verb: "cocina",       complement: "una sopa",          status: "pending" },
+    ]),
+    []
+  );
+
+  const [sentences, setSentences] = useState(initial);
+  const [index, setIndex] = useState(0);
+
+  // Gestos
+  const startX = useRef(null);
+  const deltaX = useRef(0);
+  const dragging = useRef(false);
+
+  const current = sentences[index];
+  const remaining = sentences.length - index;
+  const progress = Math.round(((index) / sentences.length) * 100); // progreso antes de enviar
+  const showDone = index >= sentences.length;
+
+  const decide = (id, decision) => {
+    setSentences((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, status: decision } : s))
+    );
+    // avanzamos a la siguiente
+    setIndex((i) => i + 1);
+    // reset drag
+    startX.current = null;
+    deltaX.current = 0;
+    dragging.current = false;
+  };
+
+  const handleAccept = () => current && decide(current.id, "accepted");
+  const handleReject = () => current && decide(current.id, "rejected");
+
+  // touch/mouse handlers para swipe
+  const onStart = (clientX) => {
+    if (!current) return;
+    startX.current = clientX;
+    deltaX.current = 0;
+    dragging.current = true;
+  };
+  const onMove = (clientX) => {
+    if (!dragging.current || startX.current == null) return;
+    deltaX.current = clientX - startX.current;
+  };
+  const onEnd = () => {
+    if (!current) return;
+    const threshold = 80; // px
+    if (deltaX.current > threshold) {
+      handleAccept();
+    } else if (deltaX.current < -threshold) {
+      handleReject();
+    } else {
+      // snap back
+      deltaX.current = 0;
+      dragging.current = false;
+      // forzamos re-render con un pequeño truco
+      setIndex((i) => i + 0);
+    }
+  };
+
+  const bindTouch = {
+    onTouchStart: (e) => onStart(e.touches[0].clientX),
+    onTouchMove: (e) => onMove(e.touches[0].clientX),
+    onTouchEnd: onEnd,
+  };
+  const bindMouse = {
+    onMouseDown: (e) => onStart(e.clientX),
+    onMouseMove: (e) => dragging.current && onMove(e.clientX),
+    onMouseUp: onEnd,
+    onMouseLeave: () => dragging.current && onEnd(),
+  };
+
+  const accepted = sentences.filter((s) => s.status === "accepted");
+
+  const handleFinish = () => {
+    onNext?.(accepted);
+  };
 
   return (
-    <div
-      className={`${baseClasses} ${isSelected ? selectedClasses : defaultClasses}`}
-      onClick={onSelect}
-    >
-      <div className="flex flex-col gap-1 sm:flex-row sm:gap-4 sm:items-center">
-        <span className="font-semibold sm:w-40">{subject}</span>
-        <span className="text-gray-600 sm:w-40">{verb}</span>
-        <span className="text-gray-600 sm:w-48">{complement}</span>
-      </div>
-      <div className="flex gap-2">
-        <button
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 text-green-600 hover:bg-green-200"
-          onClick={(e) => { e.stopPropagation(); onAccept(); }}
-        >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"></path>
-          </svg>
-        </button>
-        <button
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-red-200"
-          onClick={(e) => { e.stopPropagation(); onReject(); }}
-        >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"></path>
-          </svg>
-        </button>
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+      <div className="phone-frame">
+        {/* MAIN scrolleable si algo se extiende verticalmente */}
+        <main className="flex-1 overflow-y-auto p-6">
+          <h1 className="text-3xl font-bold text-center mb-6">Evalúa las oraciones</h1>
+
+          {/* Pila de tarjetas tipo Tinder */}
+          <div className="relative h-72 mt-2">
+            {/* Siguiente/siguientes tarjetas en el fondo para efecto de pila */}
+            {!showDone &&
+              sentences.slice(index + 1, index + 3).map((s, i) => (
+                <Card
+                  key={s.id}
+                  subject={s.subject}
+                  verb={s.verb}
+                  complement={s.complement}
+                  style={{
+                    transform: `translateY(${12 + i * 10}px) scale(${1 - i * 0.04})`,
+                    opacity: 0.6 - i * 0.15,
+                  }}
+                  className="pointer-events-none"
+                />
+              ))}
+
+            {/* Tarjeta actual draggable */}
+            {!showDone && current && (
+              <Card
+                subject={current.subject}
+                verb={current.verb}
+                complement={current.complement}
+                style={{
+                  transform: `translateX(${deltaX.current}px) rotate(${deltaX.current * 0.05}deg)`,
+                  boxShadow:
+                    deltaX.current > 0
+                      ? "0 10px 25px rgba(34,197,94,.35)" // verde
+                      : deltaX.current < 0
+                      ? "0 10px 25px rgba(239,68,68,.35)" // rojo
+                      : undefined,
+                }}
+                {...bindTouch}
+                {...bindMouse}
+              >
+                {/* Badges de feedback en drag */}
+                <Badge show={deltaX.current > 30} type="good" />
+                <Badge show={deltaX.current < -30} type="bad" />
+              </Card>
+            )}
+
+            {/* Estado final */}
+            {showDone && (
+              <div className="h-full flex items-center justify-center text-center px-6">
+                <div>
+                  <h2 className="text-2xl font-bold mb-2">¡Listo!</h2>
+                  <p className="text-gray-600">
+                    Aceptaste {accepted.length} de {sentences.length} oraciones.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Botones Bien / Mal accesibles */}
+          {!showDone && (
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={handleReject}
+                className="flex-1 rounded-lg bg-red-100 text-red-600 font-bold py-3 cursor-pointer hover:bg-red-200 transition"
+                aria-label="Marcar como incorrecta"
+              >
+                Mal
+              </button>
+              <button
+                onClick={handleAccept}
+                className="flex-1 rounded-lg bg-green-100 text-green-600 font-bold py-3 cursor-pointer hover:bg-green-200 transition"
+                aria-label="Marcar como correcta"
+              >
+                Bien
+              </button>
+            </div>
+          )}
+        </main>
+
+        {/* FOOTER con progreso y acciones (sin navbar) */}
+        <footer className="border-t border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-gray-600">Fase 3</p>
+            <p className="text-sm font-medium text-gray-600">3/4</p>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mb-3">
+            <div
+              className="bg-[var(--orange-accent)] h-2.5 rounded-full"
+              style={{ width: "75%" }}
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={onPrevious}
+              className="w-1/2 rounded-lg bg-gray-200 text-gray-700 font-bold py-3 cursor-pointer hover:bg-gray-300 transition-colors"
+            >
+              Anterior
+            </button>
+            <button
+              onClick={showDone ? handleFinish : handleAccept}
+              className="w-1/2 rounded-lg bg-[var(--orange-accent)] text-white font-bold py-3 cursor-pointer hover:brightness-95 active:scale-[0.98] transition"
+            >
+              {showDone ? "Finalizar" : "Marcar Bien"}
+            </button>
+          </div>
+        </footer>
       </div>
     </div>
   );
 };
 
-const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
-  // Datos de ejemplo para las oraciones (puedes pasarlos como props o generarlos)
-  const [sentences, setSentences] = useState([
-    { id: 1, subject: 'The cat', verb: 'is sleeping', complement: 'on the sofa', status: 'pending' },
-    { id: 2, subject: 'The children', verb: 'are playing', complement: 'in the park', status: 'pending' },
-    { id: 3, subject: 'The chef', verb: 'is cooking', complement: 'a delicious meal', status: 'pending' },
-    { id: 4, subject: 'The students', verb: 'are studying', complement: 'for the exam', status: 'pending' },
-    { id: 5, subject: 'The artist', verb: 'is painting', complement: 'a beautiful landscape', status: 'pending' },
-  ]);
+/* --- Subcomponentes --- */
 
-  const [selectedSentenceId, setSelectedSentenceId] = useState(3); // Por defecto el chef está seleccionado
-
-  useEffect(() => {
-    // Para la oración del HTML que estaba activa por defecto, marcarla como seleccionada inicialmente.
-    // Esto podría ser más dinámico si las oraciones se generan basadas en los datos anteriores.
-    // En este ejemplo, se corresponde con el id 3.
-  }, []);
-
-  const handleSelectSentence = (id) => {
-    setSelectedSentenceId(id);
-  };
-
-  const handleAcceptSentence = (id) => {
-    setSentences(prevSentences =>
-      prevSentences.map(s => (s.id === id ? { ...s, status: 'accepted' } : s))
-    );
-    // Lógica adicional, por ejemplo, pasar la oración aceptada a la siguiente pantalla
-  };
-
-  const handleRejectSentence = (id) => {
-    setSentences(prevSentences =>
-      prevSentences.map(s => (s.id === id ? { ...s, status: 'rejected' } : s))
-    );
-    // Lógica adicional
-  };
-
-  const handleNextClick = () => {
-    // Aquí puedes pasar las oraciones evaluadas o la oración final seleccionada
-    onNext(sentences.filter(s => s.status === 'accepted'));
-  };
-
-  const handlePreviousClick = () => {
-    onPrevious();
-  };
-
+const Card = ({ subject, verb, complement, style, className = "", children, ...handlers }) => {
   return (
-    <div className="relative flex size-full min-h-screen flex-col overflow-x-hidden bg-white text-black">
-      <div className="flex h-full grow flex-col" style={{ fontFamily: '"Spline Sans", "Noto Sans", sans-serif' }}>
-        <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-gray-100 px-4 py-3 sm:px-10">
-          <div className="flex items-center gap-4 text-black">
-            <a className="flex items-center gap-2 text-lg font-bold tracking-tight" href="#">
-              <svg className="h-6 w-6 text-[var(--accent-color)]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" strokeLinecap="round" strokeLinejoin="round"></path>
-              </svg>
-              <span>VNeST Practice</span>
-            </a>
-          </div>
-          <button className="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-gray-100 text-black hover:bg-gray-200">
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9.594 3.94c.09-.542.56-1.007 1.11-.95.542.057.955.543.955 1.096v.056c0 .552-.413 1.04-1.007 1.04-.498 0-.955-.386-1.058-.885a1.003 1.003 0 0 1-.002-.11v-.057zM12 15.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5zM12 21a8.967 8.967 0 0 1-8.948-8.948 8.967 8.967 0 0 1 8.948-8.948 8.967 8.967 0 0 1 8.948 8.948A8.967 8.967 0 0 1 12 21z" strokeLinecap="round" strokeLinejoin="round"></path>
-            </svg>
-          </button>
-        </header>
-
-        <main className="flex flex-1 flex-col items-center py-6">
-          <div className="w-full max-w-4xl px-4">
-            <div className="mb-6">
-              <div className="flex items-center justify-between text-sm">
-                <p className="font-medium">Phase 3</p>
-                <p className="text-gray-500">60%</p> {/* Esto es un valor fijo, se podría hacer dinámico */}
-              </div>
-              <div className="mt-1 h-2 w-full rounded-full bg-gray-200">
-                <div className="h-2 rounded-full bg-[var(--accent-color)]" style={{ width: '60%' }}></div>
-              </div>
-            </div>
-            <h1 className="mb-4 text-2xl font-bold tracking-tight">Evaluate the sentences</h1>
-            <div className="space-y-4">
-              {sentences.map(sentence => (
-                <SentenceCard
-                  key={sentence.id}
-                  subject={sentence.subject}
-                  verb={sentence.verb}
-                  complement={sentence.complement}
-                  isSelected={selectedSentenceId === sentence.id}
-                  onSelect={() => handleSelectSentence(sentence.id)}
-                  onAccept={() => handleAcceptSentence(sentence.id)}
-                  onReject={() => handleRejectSentence(sentence.id)}
-                />
-              ))}
-            </div>
-          </div>
-        </main>
-
-        <footer className="sticky bottom-0 border-t border-solid border-gray-100 bg-white/80 backdrop-blur-sm">
-          <div className="mx-auto w-full max-w-4xl px-4 py-4">
-            <div className="flex justify-between gap-4">
-              <button
-                onClick={handlePreviousClick}
-                className="flex h-12 flex-1 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-black text-base font-bold leading-normal tracking-wide transition-colors hover:bg-gray-300"
-              >
-                <span>Previous</span>
-              </button>
-              <button
-                onClick={handleNextClick}
-                className="flex h-12 flex-1 items-center justify-center overflow-hidden rounded-full bg-[var(--accent-color)] text-white text-base font-bold leading-normal tracking-wide transition-colors hover:bg-orange-600"
-              >
-                <span>Next</span>
-              </button>
-            </div>
-          </div>
-        </footer>
+    <div
+      className={`absolute inset-0 m-3 rounded-2xl border-2 border-gray-200 bg-white shadow-lg flex items-center justify-center text-center p-6 select-none ${className}`}
+      style={{ transition: "transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease", ...style }}
+      {...handlers}
+    >
+      <div className="max-w-[90%]">
+        <p className="text-2xl font-bold text-gray-900 leading-snug">
+          <span className="text-[var(--orange-accent)]">{subject}</span>{" "}
+          <span className="text-gray-800">{verb}</span>{" "}
+          <span className="text-gray-700">{complement}</span>
+        </p>
       </div>
+      {children}
+    </div>
+  );
+};
+
+const Badge = ({ show, type }) => {
+  if (!show) return null;
+  const isGood = type === "good";
+  return (
+    <div
+      className={`absolute top-4 ${isGood ? "left-4" : "right-4"} px-3 py-1 rounded-full text-sm font-bold
+        ${isGood ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+      style={{ boxShadow: "0 4px 12px rgba(0,0,0,.1)" }}
+    >
+      {isGood ? "BIEN" : "MAL"}
     </div>
   );
 };
