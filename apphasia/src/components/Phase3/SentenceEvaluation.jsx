@@ -1,18 +1,34 @@
+// src/components/Phase3/SentenceEvaluation.jsx
 import React, { useMemo, useState, useRef } from "react";
 import "./SentenceEvaluation.css";
+import { useExercise } from "../../context/ExerciseContext";
+
+// util simple para barajar
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
-  // Dataset de ejemplo (puedes inyectarlo por props si prefieres)
-  const initial = useMemo(
-    () => ([
-      { id: 1, subject: "La niña",    verb: "corre",        complement: "en el parque",     status: "pending" },
-      { id: 2, subject: "El niño",    verb: "lee",          complement: "en la biblioteca",  status: "pending" },
-      { id: 3, subject: "El perro",   verb: "conduce",      complement: "un coche",          status: "pending" }, // incorrecta
-      { id: 4, subject: "La maestra", verb: "enseña",       complement: "en la escuela",     status: "pending" },
-      { id: 5, subject: "El chef",    verb: "cocina",       complement: "una sopa",          status: "pending" },
-    ]),
-    []
-  );
+  const { exercise } = useExercise();
+
+  // 1) Tomar oraciones desde el JSON global
+  const initial = useMemo(() => {
+    const list = Array.isArray(exercise?.oraciones) ? exercise.oraciones : [];
+    // mapeo al formato interno de la UI
+    const mapped = list.map((o, idx) => ({
+      id: idx + 1,
+      text: o.oracion,
+      correcta: !!o.correcta,   // ground truth del back
+      status: "pending",        // "accepted" | "rejected" | "pending"
+    }));
+    // barajar para no mostrar siempre el mismo orden
+    return shuffle(mapped);
+  }, [exercise?.oraciones]);
 
   const [sentences, setSentences] = useState(initial);
   const [index, setIndex] = useState(0);
@@ -23,17 +39,13 @@ const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
   const dragging = useRef(false);
 
   const current = sentences[index];
-  const remaining = sentences.length - index;
-  const progress = Math.round(((index) / sentences.length) * 100); // progreso antes de enviar
   const showDone = index >= sentences.length;
 
   const decide = (id, decision) => {
     setSentences((prev) =>
       prev.map((s) => (s.id === id ? { ...s, status: decision } : s))
     );
-    // avanzamos a la siguiente
     setIndex((i) => i + 1);
-    // reset drag
     startX.current = null;
     deltaX.current = 0;
     dragging.current = false;
@@ -61,10 +73,8 @@ const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
     } else if (deltaX.current < -threshold) {
       handleReject();
     } else {
-      // snap back
       deltaX.current = 0;
       dragging.current = false;
-      // forzamos re-render con un pequeño truco
       setIndex((i) => i + 0);
     }
   };
@@ -82,28 +92,64 @@ const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
   };
 
   const accepted = sentences.filter((s) => s.status === "accepted");
+  const reviewed = sentences.filter((s) => s.status !== "pending");
+
+  // métrica opcional: aciertos vs ground truth del backend
+  const score = useMemo(() => {
+    let ok = 0;
+    for (const s of reviewed) {
+      const userSaysCorrect = s.status === "accepted";
+      if (userSaysCorrect === s.correcta) ok++;
+    }
+    return { ok, total: sentences.length };
+  }, [reviewed, sentences.length]);
 
   const handleFinish = () => {
+    // Si quieres pasar TODO (incluyendo evaluación), puedes enviar 'sentences'
+    // Por compatibilidad con tu App actual, envío accepted
     onNext?.(accepted);
   };
+
+  // Guard si no hay ejercicio/oraciones
+  if (!exercise || !Array.isArray(exercise.oraciones) || exercise.oraciones.length === 0) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="phone-frame">
+          <main className="flex-1 overflow-y-auto p-6">
+            <h1 className="text-2xl font-bold mb-2">No hay oraciones</h1>
+            <p className="text-gray-700">Regresa y genera un ejercicio primero.</p>
+          </main>
+          <footer className="border-t border-gray-200 p-4">
+            <button
+              onClick={onPrevious}
+              className="w-full rounded-lg bg-gray-200 text-gray-700 font-bold py-3 hover:bg-gray-300 transition-colors"
+            >
+              Volver
+            </button>
+          </footer>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
       <div className="phone-frame">
-        {/* MAIN scrolleable si algo se extiende verticalmente */}
+        {/* MAIN */}
         <main className="flex-1 overflow-y-auto p-6">
-          <h1 className="text-3xl font-bold text-center mb-6">Evalúa las oraciones</h1>
+          <h1 className="text-3xl font-bold text-center mb-2">Evalúa las oraciones</h1>
+          <p className="text-center text-sm text-gray-500">
+            Desliza a la derecha si es correcta, a la izquierda si es incorrecta.
+          </p>
 
-          {/* Pila de tarjetas tipo Tinder */}
-          <div className="relative h-72 mt-2">
-            {/* Siguiente/siguientes tarjetas en el fondo para efecto de pila */}
+          {/* Pila de tarjetas */}
+          <div className="relative h-72 mt-4">
+            {/* siguientes cartas (fondo) */}
             {!showDone &&
               sentences.slice(index + 1, index + 3).map((s, i) => (
                 <Card
                   key={s.id}
-                  subject={s.subject}
-                  verb={s.verb}
-                  complement={s.complement}
+                  sentence={s.text}
                   style={{
                     transform: `translateY(${12 + i * 10}px) scale(${1 - i * 0.04})`,
                     opacity: 0.6 - i * 0.15,
@@ -112,44 +158,44 @@ const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
                 />
               ))}
 
-            {/* Tarjeta actual draggable */}
+            {/* carta actual */}
             {!showDone && current && (
               <Card
-                subject={current.subject}
-                verb={current.verb}
-                complement={current.complement}
+                sentence={current.text}
                 style={{
                   transform: `translateX(${deltaX.current}px) rotate(${deltaX.current * 0.05}deg)`,
                   boxShadow:
                     deltaX.current > 0
-                      ? "0 10px 25px rgba(34,197,94,.35)" // verde
+                      ? "0 10px 25px rgba(34,197,94,.35)"
                       : deltaX.current < 0
-                      ? "0 10px 25px rgba(239,68,68,.35)" // rojo
+                      ? "0 10px 25px rgba(239,68,68,.35)"
                       : undefined,
                 }}
                 {...bindTouch}
                 {...bindMouse}
               >
-                {/* Badges de feedback en drag */}
                 <Badge show={deltaX.current > 30} type="good" />
                 <Badge show={deltaX.current < -30} type="bad" />
               </Card>
             )}
 
-            {/* Estado final */}
+            {/* estado final */}
             {showDone && (
               <div className="h-full flex items-center justify-center text-center px-6">
                 <div>
-                  <h2 className="text-2xl font-bold mb-2">¡Listo!</h2>
-                  <p className="text-gray-600">
+                  <h2 className="text-2xl font-bold mb-1">¡Listo!</h2>
+                  <p className="text-gray-600 mb-1">
                     Aceptaste {accepted.length} de {sentences.length} oraciones.
+                  </p>
+                  <p className="text-gray-600">
+                    Aciertos: {score.ok} / {score.total}
                   </p>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Botones Bien / Mal accesibles */}
+          {/* Botones Bien / Mal */}
           {!showDone && (
             <div className="mt-6 flex gap-3">
               <button
@@ -170,16 +216,20 @@ const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
           )}
         </main>
 
-        {/* FOOTER con progreso y acciones (sin navbar) */}
+        {/* FOOTER */}
         <footer className="border-t border-gray-200 p-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-medium text-gray-600">Fase 3</p>
-            <p className="text-sm font-medium text-gray-600">3/4</p>
+            <p className="text-sm font-medium text-gray-600">
+              {showDone ? "3/4" : `${Math.min(index + 1, sentences.length)}/${sentences.length}`}
+            </p>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2.5 mb-3">
             <div
               className="bg-[var(--orange-accent)] h-2.5 rounded-full"
-              style={{ width: "75%" }}
+              style={{
+                width: `${Math.round((Math.min(index, sentences.length) / sentences.length) * 100)}%`,
+              }}
             />
           </div>
 
@@ -205,7 +255,7 @@ const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
 
 /* --- Subcomponentes --- */
 
-const Card = ({ subject, verb, complement, style, className = "", children, ...handlers }) => {
+const Card = ({ sentence, style, className = "", children, ...handlers }) => {
   return (
     <div
       className={`absolute inset-0 m-3 rounded-2xl border-2 border-gray-200 bg-white shadow-lg flex items-center justify-center text-center p-6 select-none ${className}`}
@@ -213,11 +263,7 @@ const Card = ({ subject, verb, complement, style, className = "", children, ...h
       {...handlers}
     >
       <div className="max-w-[90%]">
-        <p className="text-2xl font-bold text-gray-900 leading-snug">
-          <span className="text-gray-700">{subject}</span>{" "}
-          <span className="text-[var(--orange-accent)]">{verb}</span>{" "}
-          <span className="text-gray-700">{complement}</span>
-        </p>
+        <p className="text-2xl font-bold text-gray-900 leading-snug">{sentence}</p>
       </div>
       {children}
     </div>

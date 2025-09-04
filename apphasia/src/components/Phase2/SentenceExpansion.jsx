@@ -1,31 +1,118 @@
-import React, { useState } from "react";
+// src/components/Phase2/SentenceExpansion.jsx
+import React, { useEffect, useMemo, useState } from "react";
 import "./SentenceExpansion.css";
+import { useExercise } from "../../context/ExerciseContext";
+
+// util: Fisher–Yates
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 const SentenceExpansion = ({
   onNext,
   onPrevious,
-  selectedContext,
-  selectedActionDetails,
+  selectedContext,          // lo sigues recibiendo si lo necesitas mostrar
+  selectedActionDetails,     // { who, what } de la pantalla anterior
 }) => {
-  // Estados por defecto (con la misma capitalización que se muestra en UI)
-  const [selectedWhere, setSelectedWhere] = useState("En el parque");
-  const [selectedWhy, setSelectedWhy] = useState("Para divertirse");
-  const [selectedWhen, setSelectedWhen] = useState("Por la tarde");
+  const { exercise } = useExercise();
 
-  // Construcción de la oración (usa datos previos si existen)
-  const baseSentenceSubject = selectedActionDetails?.who || "El sujeto";
-  const baseSentenceAction = selectedActionDetails?.action || "corre"; // ej: "corre"
-  const fullSentence = `${baseSentenceSubject} ${baseSentenceAction} ${selectedWhere} ${selectedWhy} ${selectedWhen}.`;
+  // Guards
+  const verbo = exercise?.verbo ?? "";
+  const pares = Array.isArray(exercise?.pares) ? exercise.pares : [];
+  const who = selectedActionDetails?.who || "";
+  const what = selectedActionDetails?.what || "";
 
-  const handleNextClick = () =>
-    onNext({ where: selectedWhere, why: selectedWhy, when: selectedWhen });
+  // Buscar el par elegido para extraer expansiones
+  const currentPair = useMemo(() => {
+    return pares.find(p => p?.sujeto === who && p?.objeto === what) || null;
+  }, [pares, who, what]);
 
-  // Tarjeta tipo radio (mismo look que los botones de pantallas previas)
-  // Tarjeta tipo radio
+  // Preparar listas de opciones desde el JSON (y barajarlas)
+  const opciones = useMemo(() => {
+    const donde = currentPair?.expansiones?.donde?.opciones || [];
+    const cuando = currentPair?.expansiones?.cuando?.opciones || [];
+    const porque = currentPair?.expansiones?.por_que?.opciones || [];
+    return {
+      donde: shuffle(donde),
+      cuando: shuffle(cuando),
+      porque: shuffle(porque),
+      correct: {
+        donde: currentPair?.expansiones?.donde?.opcion_correcta || "",
+        cuando: currentPair?.expansiones?.cuando?.opcion_correcta || "",
+        porque: currentPair?.expansiones?.por_que?.opcion_correcta || "",
+      },
+    };
+  }, [currentPair]);
+
+  // Selecciones del usuario (por defecto, la primera opción si existe)
+  const [selectedWhere, setSelectedWhere] = useState("");
+  const [selectedWhy, setSelectedWhy] = useState("");
+  const [selectedWhen, setSelectedWhen] = useState("");
+
+  // Inicializar cuando cambien las opciones
+  useEffect(() => {
+    if (opciones.donde.length) setSelectedWhere(opciones.donde[0]);
+    if (opciones.porque.length) setSelectedWhy(opciones.porque[0]);
+    if (opciones.cuando.length) setSelectedWhen(opciones.cuando[0]);
+  }, [opciones.donde, opciones.porque, opciones.cuando]);
+
+  // Construcción de oración (simple; usa verbo tal cual viene y objeto “what”)
+  // Ej.: "un perro encontrar una pelota en el parque porque juega con ella por la mañana."
+  const fullSentence = useMemo(() => {
+    const parts = [
+      who || "El sujeto",
+      verbo || "hacer",
+      what || "algo",
+      selectedWhere,
+      selectedWhy,
+      selectedWhen,
+    ].filter(Boolean);
+    // minúsculas al inicio si tu who viene en minúscula, respeta tal cual:
+    return `${parts.join(" ")}.`.replace(/\s+\./, ".");
+  }, [who, verbo, what, selectedWhere, selectedWhy, selectedWhen]);
+
+  const handleNextClick = () => {
+    onNext({
+      where: selectedWhere,
+      why: selectedWhy,
+      when: selectedWhen,
+      sentence: fullSentence,
+    });
+  };
+
+  // Si no hay datos, mostrar aviso
+  if (!exercise || !currentPair) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="phone-frame">
+          <main className="flex-1 overflow-y-auto p-6">
+            <h1 className="text-2xl font-bold mb-2">Faltan datos</h1>
+            <p className="text-gray-700">
+              Regresa y selecciona un contexto y una pareja (¿quién? / ¿qué?) válidos.
+            </p>
+          </main>
+          <footer className="border-t border-gray-200 p-4">
+            <button
+              onClick={onPrevious}
+              className="w-full rounded-lg bg-gray-200 text-gray-700 font-bold py-3 hover:bg-gray-300 transition-colors"
+            >
+              Volver
+            </button>
+          </footer>
+        </div>
+      </div>
+    );
+  }
+
+  // Radio card reutilizable
   const RadioCard = ({ group, label, value, selected, onChange }) => {
     const isSelected = selected === value;
     const base =
-      // inline-flex: ancho según contenido; min-w-fit evita que colapse, nowrap evita saltos de línea.
       "inline-flex items-center justify-center rounded-xl px-5 py-3 text-lg transition-all select-none whitespace-nowrap min-w-fit";
     const normal =
       "border-2 border-gray-200 bg-white font-medium text-black shadow-sm hover:bg-gray-50 cursor-pointer";
@@ -54,13 +141,21 @@ const SentenceExpansion = ({
             Completa la oración
           </h1>
 
-          {selectedActionDetails?.action && (
-            <div className="mb-8 flex w-full items-center justify-center rounded-xl bg-zinc-900 p-6 text-white shadow-lg">
-              <span className="text-3xl font-bold capitalize">
-                {selectedActionDetails.action}
-              </span>
+          {/* Tarjeta con verbo y pareja elegida */}
+          <div className="mb-6 grid gap-3 md:grid-cols-3">
+            <div className="rounded-xl bg-zinc-900 p-4 text-white shadow-lg text-center">
+              <div className="text-xs uppercase opacity-70 mb-1">Verbo</div>
+              <div className="text-2xl font-bold">{verbo || "—"}</div>
             </div>
-          )}
+            <div className="rounded-xl bg-zinc-900 p-4 text-white shadow-lg text-center">
+              <div className="text-xs uppercase opacity-70 mb-1">¿Quién?</div>
+              <div className="text-xl font-semibold">{who || "—"}</div>
+            </div>
+            <div className="rounded-xl bg-zinc-900 p-4 text-white shadow-lg text-center">
+              <div className="text-xs uppercase opacity-70 mb-1">¿Qué?</div>
+              <div className="text-xl font-semibold">{what || "—"}</div>
+            </div>
+          </div>
 
           <div className="space-y-8">
             {/* ¿DÓNDE? */}
@@ -73,42 +168,17 @@ const SentenceExpansion = ({
                 role="tablist"
                 aria-label="Opciones de Dónde"
               >
-                <div className="snap-start">
-                  <RadioCard
-                    group="donde"
-                    label="En el parque"
-                    value="En el parque"
-                    selected={selectedWhere}
-                    onChange={setSelectedWhere}
-                  />
-                </div>
-                <div className="snap-start">
-                  <RadioCard
-                    group="donde"
-                    label="En la biblioteca"
-                    value="En la biblioteca"
-                    selected={selectedWhere}
-                    onChange={setSelectedWhere}
-                  />
-                </div>
-                <div className="snap-start">
-                  <RadioCard
-                    group="donde"
-                    label="En casa"
-                    value="En casa"
-                    selected={selectedWhere}
-                    onChange={setSelectedWhere}
-                  />
-                </div>
-                <div className="snap-start">
-                  <RadioCard
-                    group="donde"
-                    label="En la escuela"
-                    value="En la escuela"
-                    selected={selectedWhere}
-                    onChange={setSelectedWhere}
-                  />
-                </div>
+                {opciones.donde.map((op) => (
+                  <div className="snap-start" key={op}>
+                    <RadioCard
+                      group="donde"
+                      label={op}
+                      value={op}
+                      selected={selectedWhere}
+                      onChange={setSelectedWhere}
+                    />
+                  </div>
+                ))}
               </div>
             </section>
 
@@ -122,42 +192,17 @@ const SentenceExpansion = ({
                 role="tablist"
                 aria-label="Opciones de Por qué"
               >
-                <div className="snap-start">
-                  <RadioCard
-                    group="porque"
-                    label="Para estudiar"
-                    value="Para estudiar"
-                    selected={selectedWhy}
-                    onChange={setSelectedWhy}
-                  />
-                </div>
-                <div className="snap-start">
-                  <RadioCard
-                    group="porque"
-                    label="Para relajarse"
-                    value="Para relajarse"
-                    selected={selectedWhy}
-                    onChange={setSelectedWhy}
-                  />
-                </div>
-                <div className="snap-start">
-                  <RadioCard
-                    group="porque"
-                    label="Para divertirse"
-                    value="Para divertirse"
-                    selected={selectedWhy}
-                    onChange={setSelectedWhy}
-                  />
-                </div>
-                <div className="snap-start">
-                  <RadioCard
-                    group="porque"
-                    label="Para trabajar"
-                    value="Para trabajar"
-                    selected={selectedWhy}
-                    onChange={setSelectedWhy}
-                  />
-                </div>
+                {opciones.porque.map((op) => (
+                  <div className="snap-start" key={op}>
+                    <RadioCard
+                      group="porque"
+                      label={op}
+                      value={op}
+                      selected={selectedWhy}
+                      onChange={setSelectedWhy}
+                    />
+                  </div>
+                ))}
               </div>
             </section>
 
@@ -171,48 +216,23 @@ const SentenceExpansion = ({
                 role="tablist"
                 aria-label="Opciones de Cuándo"
               >
-                <div className="snap-start">
-                  <RadioCard
-                    group="cuando"
-                    label="Por la mañana"
-                    value="Por la mañana"
-                    selected={selectedWhen}
-                    onChange={setSelectedWhen}
-                  />
-                </div>
-                <div className="snap-start">
-                  <RadioCard
-                    group="cuando"
-                    label="Por la tarde"
-                    value="Por la tarde"
-                    selected={selectedWhen}
-                    onChange={setSelectedWhen}
-                  />
-                </div>
-                <div className="snap-start">
-                  <RadioCard
-                    group="cuando"
-                    label="Por la noche"
-                    value="Por la noche"
-                    selected={selectedWhen}
-                    onChange={setSelectedWhen}
-                  />
-                </div>
-                <div className="snap-start">
-                  <RadioCard
-                    group="cuando"
-                    label="El fin de semana"
-                    value="El fin de semana"
-                    selected={selectedWhen}
-                    onChange={setSelectedWhen}
-                  />
-                </div>
+                {opciones.cuando.map((op) => (
+                  <div className="snap-start" key={op}>
+                    <RadioCard
+                      group="cuando"
+                      label={op}
+                      value={op}
+                      selected={selectedWhen}
+                      onChange={setSelectedWhen}
+                    />
+                  </div>
+                ))}
               </div>
             </section>
           </div>
         </main>
 
-        {/* footer igual que antes */}
+        {/* footer */}
         <footer className="border-t border-gray-200 p-4">
           <div className="bg-amber-50 rounded-lg p-4 mb-4 text-center">
             <h3 className="font-bold text-lg mb-2 text-gray-800">
@@ -220,7 +240,7 @@ const SentenceExpansion = ({
             </h3>
             <p className="text-gray-700 text-lg">
               <span className="font-bold text-[var(--orange-accent)]">
-                {baseSentenceSubject} {baseSentenceAction}
+                {who} {verbo} {what}
               </span>{" "}
               <span className="font-bold text-[var(--orange-accent)]">
                 {selectedWhere}

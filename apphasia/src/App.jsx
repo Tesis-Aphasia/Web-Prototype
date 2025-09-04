@@ -18,7 +18,7 @@ function App() {
   const handleContextSelectionNext = (context) => {
     setSelectedContext(context);
     setCurrentStep(2);
-    console.log("Contexto seleccionado:", context);
+    //console.log("Contexto seleccionado:", context);
   };
 
   const handleActionSelectionNext = (details) => {
