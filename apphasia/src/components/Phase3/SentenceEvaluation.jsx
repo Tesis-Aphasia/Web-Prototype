@@ -3,7 +3,6 @@ import React, { useMemo, useState, useRef } from "react";
 import "./SentenceEvaluation.css";
 import { useExercise } from "../../context/ExerciseContext";
 
-// util simple para barajar
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -16,17 +15,14 @@ function shuffle(arr) {
 const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
   const { exercise } = useExercise();
 
-  // 1) Tomar oraciones desde el JSON global
   const initial = useMemo(() => {
     const list = Array.isArray(exercise?.oraciones) ? exercise.oraciones : [];
-    // mapeo al formato interno de la UI
     const mapped = list.map((o, idx) => ({
       id: idx + 1,
       text: o.oracion,
-      correcta: !!o.correcta,   // ground truth del back
-      status: "pending",        // "accepted" | "rejected" | "pending"
+      correcta: !!o.correcta,
+      status: "pending", // "accepted" | "rejected" | "pending"
     }));
-    // barajar para no mostrar siempre el mismo orden
     return shuffle(mapped);
   }, [exercise?.oraciones]);
 
@@ -54,7 +50,6 @@ const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
   const handleAccept = () => current && decide(current.id, "accepted");
   const handleReject = () => current && decide(current.id, "rejected");
 
-  // touch/mouse handlers para swipe
   const onStart = (clientX) => {
     if (!current) return;
     startX.current = clientX;
@@ -67,7 +62,7 @@ const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
   };
   const onEnd = () => {
     if (!current) return;
-    const threshold = 80; // px
+    const threshold = 80;
     if (deltaX.current > threshold) {
       handleAccept();
     } else if (deltaX.current < -threshold) {
@@ -94,7 +89,6 @@ const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
   const accepted = sentences.filter((s) => s.status === "accepted");
   const reviewed = sentences.filter((s) => s.status !== "pending");
 
-  // métrica opcional: aciertos vs ground truth del backend
   const score = useMemo(() => {
     let ok = 0;
     for (const s of reviewed) {
@@ -105,19 +99,22 @@ const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
   }, [reviewed, sentences.length]);
 
   const handleFinish = () => {
-    // Si quieres pasar TODO (incluyendo evaluación), puedes enviar 'sentences'
-    // Por compatibilidad con tu App actual, envío accepted
     onNext?.(accepted);
   };
 
-  // Guard si no hay ejercicio/oraciones
-  if (!exercise || !Array.isArray(exercise.oraciones) || exercise.oraciones.length === 0) {
+  if (
+    !exercise ||
+    !Array.isArray(exercise.oraciones) ||
+    exercise.oraciones.length === 0
+  ) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="phone-frame">
           <main className="flex-1 overflow-y-auto p-6">
             <h1 className="text-2xl font-bold mb-2">No hay oraciones</h1>
-            <p className="text-gray-700">Regresa y genera un ejercicio primero.</p>
+            <p className="text-gray-700">
+              Regresa y genera un ejercicio primero.
+            </p>
           </main>
           <footer className="border-t border-gray-200 p-4">
             <button
@@ -132,38 +129,48 @@ const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
     );
   }
 
+  // Decididas hasta el momento (en orden)
+  const decided = sentences
+    .slice(0, index)
+    .filter((s) => s.status !== "pending");
+
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
       <div className="phone-frame">
         {/* MAIN */}
         <main className="flex-1 overflow-y-auto p-6">
-          <h1 className="text-3xl font-bold text-center mb-2">Evalúa las oraciones</h1>
+          <h1 className="text-3xl font-bold text-center mb-2">
+            Evalúa las oraciones
+          </h1>
           <p className="text-center text-sm text-gray-500">
-            Desliza a la derecha si es correcta, a la izquierda si es incorrecta.
+            Desliza a la derecha si es correcta, a la izquierda si es
+            incorrecta.
           </p>
 
-          {/* Pila de tarjetas */}
-          <div className="relative h-72 mt-4">
-            {/* siguientes cartas (fondo) */}
+          {/* Pila de tarjetas (Tinder-like) */}
+          <div className="relative h-72 mt-4 shrink-0">
             {!showDone &&
               sentences.slice(index + 1, index + 3).map((s, i) => (
                 <Card
                   key={s.id}
                   sentence={s.text}
                   style={{
-                    transform: `translateY(${12 + i * 10}px) scale(${1 - i * 0.04})`,
+                    transform: `translateY(${12 + i * 10}px) scale(${
+                      1 - i * 0.04
+                    })`,
                     opacity: 0.6 - i * 0.15,
                   }}
                   className="pointer-events-none"
                 />
               ))}
 
-            {/* carta actual */}
             {!showDone && current && (
               <Card
                 sentence={current.text}
                 style={{
-                  transform: `translateX(${deltaX.current}px) rotate(${deltaX.current * 0.05}deg)`,
+                  transform: `translateX(${deltaX.current}px) rotate(${
+                    deltaX.current * 0.05
+                  }deg)`,
                   boxShadow:
                     deltaX.current > 0
                       ? "0 10px 25px rgba(34,197,94,.35)"
@@ -179,14 +186,10 @@ const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
               </Card>
             )}
 
-            {/* estado final */}
             {showDone && (
               <div className="h-full flex items-center justify-center text-center px-6">
                 <div>
                   <h2 className="text-2xl font-bold mb-1">¡Listo!</h2>
-                  <p className="text-gray-600 mb-1">
-                    Aceptaste {accepted.length} de {sentences.length} oraciones.
-                  </p>
                   <p className="text-gray-600">
                     Aciertos: {score.ok} / {score.total}
                   </p>
@@ -194,7 +197,6 @@ const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
               </div>
             )}
           </div>
-
           {/* Botones Bien / Mal */}
           {!showDone && (
             <div className="mt-6 flex gap-3">
@@ -214,6 +216,55 @@ const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
               </button>
             </div>
           )}
+          {/* === Historial VERTICAL con altura fija y scroll interno === */}
+          {decided.length > 0 && (
+            <section className="mt-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-3">
+                Tus respuestas
+              </h2>
+
+              {/* Contenedor fijo para que no empuje el footer */}
+
+              <div className="flex flex-col gap-3">
+                {decided.map((s) => {
+                  // Dentro del mapeo de decided:
+                  const userSaysCorrect = s.status === "accepted"; // tú marcaste "Bien"
+                  const acertaste = userSaysCorrect === s.correcta; // coincide con el ground truth
+                  const bg = acertaste
+                    ? "bg-green-50 border-green-300"
+                    : "bg-red-50 border-red-300";
+                  const tagBg = acertaste
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700";
+                  const title = acertaste
+                    ? "✅ Acertaste"
+                    : "❌ Te equivocaste";
+
+                  return (
+                    <div
+                      key={s.id}
+                      className={`rounded-xl border-2 ${bg} p-4 shadow-sm`}
+                    >
+                      <div
+                        className={`inline-block text-xs font-bold px-2 py-0.5 rounded-full ${tagBg} mb-2`}
+                      >
+                        {title}
+                      </div>
+                      <div className="text-gray-900 font-semibold text-lg">
+                        {s.text}
+                      </div>
+
+                      {/* Si quieres mostrar la etiqueta del sistema */}
+                      <div className="text-xs text-gray-600 mt-1">
+                        Sistema: {s.correcta ? "Correcta" : "Incorrecta"} · Tú
+                        marcaste: {userSaysCorrect ? "Bien" : "Mal"}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </main>
 
         {/* FOOTER */}
@@ -221,14 +272,20 @@ const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-medium text-gray-600">Fase 3</p>
             <p className="text-sm font-medium text-gray-600">
-              {showDone ? "3/4" : `${Math.min(index + 1, sentences.length)}/${sentences.length}`}
+              {showDone
+                ? "3/4"
+                : `${Math.min(index + 1, sentences.length)}/${
+                    sentences.length
+                  }`}
             </p>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2.5 mb-3">
             <div
               className="bg-[var(--orange-accent)] h-2.5 rounded-full"
               style={{
-                width: `${Math.round((Math.min(index, sentences.length) / sentences.length) * 100)}%`,
+                width: `${Math.round(
+                  (Math.min(index, sentences.length) / sentences.length) * 100
+                )}%`,
               }}
             />
           </div>
@@ -259,11 +316,17 @@ const Card = ({ sentence, style, className = "", children, ...handlers }) => {
   return (
     <div
       className={`absolute inset-0 m-3 rounded-2xl border-2 border-gray-200 bg-white shadow-lg flex items-center justify-center text-center p-6 select-none ${className}`}
-      style={{ transition: "transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease", ...style }}
+      style={{
+        transition:
+          "transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease",
+        ...style,
+      }}
       {...handlers}
     >
       <div className="max-w-[90%]">
-        <p className="text-2xl font-bold text-gray-900 leading-snug">{sentence}</p>
+        <p className="text-2xl font-bold text-gray-900 leading-snug">
+          {sentence}
+        </p>
       </div>
       {children}
     </div>
@@ -275,7 +338,9 @@ const Badge = ({ show, type }) => {
   const isGood = type === "good";
   return (
     <div
-      className={`absolute top-4 ${isGood ? "left-4" : "right-4"} px-3 py-1 rounded-full text-sm font-bold
+      className={`absolute top-4 ${
+        isGood ? "left-4" : "right-4"
+      } px-3 py-1 rounded-full text-sm font-bold
         ${isGood ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
       style={{ boxShadow: "0 4px 12px rgba(0,0,0,.1)" }}
     >
