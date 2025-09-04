@@ -6,7 +6,7 @@ from openai import AzureOpenAI
 def generate_prompt(context: str):
     prompt1 = ''' 
     Genera un JSON con la siguiente estructura. No agregues comentarios adicionales, solo el json. 
-    Todo el ejercicio debe girar alrededor de un único verbo.
+    Todo el ejercicio debe girar alrededor de un único verbo. Dificultad baja
 
     Formato requerido:
     {
@@ -42,7 +42,7 @@ def generate_prompt(context: str):
 
     verbo: el verbo en infinitivo que se va a trabajar en todo el ejercicio. Sin ser genéricos como ‘hacer’ o ‘tener’. Elige el verbo dentro del contexto de ''' + context + '''
 
-    Debes generar exactamente cuatro pares en formato:
+    Debes generar exactamente 3 pares en formato:
     sujeto + verbo + complemento, usando SIEMPRE el mismo verbo.
     Condiciones obligatorias: Exclusividad de pares: Cada sujeto debe estar vinculado a un complemento que no pueda ser usado con ningún otro sujeto dentro de los 3 pares. Ningún sujeto debe poder ejecutar la acción sobre el complemento de los otros pares. Especificidad máxima: Los pares deben ser tan concretos y únicos que sea imposible intercambiar sujeto y complemento sin perder el sentido. Variedad: Los tres pares deben ser totalmente diferentes en su contexto y tema. Pueden ser creativos y no tienen que estar relacionados entre sí.
 
@@ -62,8 +62,8 @@ def generate_prompt(context: str):
 
 def main(context: str):
   endpoint = "https://invuniandesai-2.openai.azure.com/"
-  model_name = "gpt-4o-mini"
-  deployment = "gpt"
+  model_name = "gpt-4.1"
+  deployment = "gpt-4.1"
 
   subscription_key = ""
   api_version = "2024-12-01-preview"
