@@ -118,7 +118,7 @@ const ContextSelection = ({ onNext }) => {
                 htmlFor="context1"
                 className="block w-full p-6 text-lg text-left border-2 border-gray-200 rounded-xl transition-all duration-200 ease-in-out"
               >
-                Hacer mercado
+                Ir a la tienda
               </label>
             </div>
 
@@ -135,7 +135,7 @@ const ContextSelection = ({ onNext }) => {
                 htmlFor="context2"
                 className="block w-full p-6 text-lg text-left border-2 border-gray-200 rounded-xl transition-all duration-200 ease-in-out"
               >
-                Ir a un restaurante
+                Cita médica
               </label>
             </div>
 
@@ -152,7 +152,7 @@ const ContextSelection = ({ onNext }) => {
                 htmlFor="context3"
                 className="block w-full p-6 text-lg text-left border-2 border-gray-200 rounded-xl transition-all duration-200 ease-in-out"
               >
-                Encontrarse a alguien en la calle
+                Reunion familiar
               </label>
             </div>
 

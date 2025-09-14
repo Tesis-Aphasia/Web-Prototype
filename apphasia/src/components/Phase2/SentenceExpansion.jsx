@@ -110,28 +110,45 @@ const SentenceExpansion = ({
   }
 
   // Radio card reutilizable
-  const RadioCard = ({ group, label, value, selected, onChange }) => {
-    const isSelected = selected === value;
+  // Radio card con estados correcto/incorrecto
+  const RadioCard = ({
+      group,
+      label,
+      value,
+      selectedValue,
+      correctValue,
+      onChange,
+    }) => {
+    const isSelected = selectedValue === value;
+    const isCorrect  = isSelected && value === correctValue;
+    const isWrong    = isSelected && value !== correctValue;
+
     const base =
-      "inline-flex items-center justify-center rounded-xl px-5 py-3 text-lg transition-all select-none whitespace-nowrap min-w-fit";
+      "flex w-full items-start rounded-xl px-5 py-3 text-lg transition-all select-none text-left leading-snug";
     const normal =
-      "border-2 border-gray-200 bg-white font-medium text-black shadow-sm hover:bg-gray-50 cursor-pointer";
-    const active =
-      "border-2 border-[var(--orange-accent)] bg-orange-50 font-bold text-black shadow-md ring-2 ring-[var(--orange-accent)] ring-offset-2 cursor-pointer";
+      "border border-gray-300 bg-white font-medium text-black shadow-sm hover:bg-gray-50";
+    const right =
+      "border-2 border-green-600 bg-green-50 font-bold text-green-900 shadow-md ring-2 ring-green-500 ring-offset-2";
+    const wrong =
+      "border-2 border-red-600 bg-red-50 font-bold text-red-900 shadow-md ring-2 ring-red-500 ring-offset-2";
+
     return (
-      <label className={`${base} ${isSelected ? active : normal}`}>
+      <label className={`${base} ${isCorrect ? right : isWrong ? wrong : normal}`}>
         <input
           type="radio"
           name={group}
           value={value}
           checked={isSelected}
           onChange={() => onChange(value)}
-          className="hidden"
+          className="sr-only"
+          aria-checked={isSelected}
+          aria-invalid={isWrong || undefined}
         />
-        {label}
+        <span className="break-words max-w-full">{label}</span>
       </label>
     );
   };
+
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
@@ -142,20 +159,24 @@ const SentenceExpansion = ({
           </h1>
 
           {/* Tarjeta con verbo y pareja elegida */}
-          <div className="mb-6 grid gap-3 md:grid-cols-3">
-            <div className="rounded-xl bg-zinc-900 p-4 text-white shadow-lg text-center">
-              <div className="text-xs uppercase opacity-70 mb-1">Verbo</div>
-              <div className="text-2xl font-bold">{verbo || "—"}</div>
+          {/* Tarjeta con verbo y pareja elegida */}
+          <div className="mb-6 grid gap-3 grid-cols-1 md:grid-cols-3">
+            <div className="rounded-2xl bg-zinc-900 p-4 text-white shadow-lg text-center min-w-0">
+              <div className="text-[11px] uppercase opacity-70 mb-1">¿Quién?</div>
+              <div className="text-[16px] font-bold leading-tight break-words">{who || "—"}</div>
             </div>
-            <div className="rounded-xl bg-zinc-900 p-4 text-white shadow-lg text-center">
-              <div className="text-xs uppercase opacity-70 mb-1">¿Quién?</div>
-              <div className="text-xl font-semibold">{who || "—"}</div>
+
+            <div className="rounded-2xl p-4 text-white shadow-lg text-center min-w-0 bg-[var(--orange-accent)]">
+              <div className="text-[11px] uppercase opacity-70 mb-1">Verbo</div>
+              <div className="text-[16px] font-bold leading-tight break-words">{verbo || "—"}</div>
             </div>
-            <div className="rounded-xl bg-zinc-900 p-4 text-white shadow-lg text-center">
-              <div className="text-xs uppercase opacity-70 mb-1">¿Qué?</div>
-              <div className="text-xl font-semibold">{what || "—"}</div>
+
+            <div className="rounded-2xl bg-zinc-900 p-4 text-white shadow-lg text-center min-w-0">
+              <div className="text-[11px] uppercase opacity-70 mb-1">¿Qué?</div>
+              <div className="text-[16px] font-bold leading-tight break-words">{what || "—"}</div>
             </div>
           </div>
+
 
           <div className="space-y-8">
             {/* ¿DÓNDE? */}
@@ -164,20 +185,20 @@ const SentenceExpansion = ({
                 1. ¿DÓNDE?
               </h2>
               <div
-                className="horizontal-scroll -mx-6 px-6 flex gap-3 overflow-x-auto whitespace-nowrap snap-x snap-mandatory"
-                role="tablist"
+                className="flex flex-col gap-3"
+                role="radiogroup"
                 aria-label="Opciones de Dónde"
               >
                 {opciones.donde.map((op) => (
-                  <div className="snap-start" key={op}>
                     <RadioCard
+                      key={op}
                       group="donde"
                       label={op}
                       value={op}
-                      selected={selectedWhere}
+                      selectedValue={selectedWhere}
+                      correctValue={opciones.correct.donde}
                       onChange={setSelectedWhere}
                     />
-                  </div>
                 ))}
               </div>
             </section>
@@ -188,20 +209,20 @@ const SentenceExpansion = ({
                 2. ¿POR QUÉ?
               </h2>
               <div
-                className="horizontal-scroll -mx-6 px-6 flex gap-3 overflow-x-auto whitespace-nowrap snap-x snap-mandatory"
-                role="tablist"
+                className="flex flex-col gap-3"
+                role="radiogroup"
                 aria-label="Opciones de Por qué"
               >
                 {opciones.porque.map((op) => (
-                  <div className="snap-start" key={op}>
                     <RadioCard
+                      key={op}
                       group="porque"
                       label={op}
                       value={op}
-                      selected={selectedWhy}
+                      selectedValue={selectedWhy}
+                      correctValue={opciones.correct.porque}
                       onChange={setSelectedWhy}
                     />
-                  </div>
                 ))}
               </div>
             </section>
@@ -212,20 +233,20 @@ const SentenceExpansion = ({
                 3. ¿CUÁNDO?
               </h2>
               <div
-                className="horizontal-scroll -mx-6 px-6 flex gap-3 overflow-x-auto whitespace-nowrap snap-x snap-mandatory"
-                role="tablist"
+                className="flex flex-col gap-3"
+                role="radiogroup"
                 aria-label="Opciones de Cuándo"
               >
                 {opciones.cuando.map((op) => (
-                  <div className="snap-start" key={op}>
                     <RadioCard
+                      key={op}
                       group="cuando"
                       label={op}
                       value={op}
-                      selected={selectedWhen}
+                      selectedValue={selectedWhen}
+                      correctValue={opciones.correct.cuando}
                       onChange={setSelectedWhen}
                     />
-                  </div>
                 ))}
               </div>
             </section>

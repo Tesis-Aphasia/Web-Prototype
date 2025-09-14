@@ -17,8 +17,9 @@ def generate_verb_prompt(contexto: str) -> str:
     return (
         f"Dado el siguiente contexto: '{contexto}'. "
         "Genera una lista de exactamente 7 verbos transitivos que cumplan: "
+        "0) Deben ser verbos que puedan claramente usarse en el contexto dado; "
         "1) Requieren complemento directo; 2) Son cotidianos y familiares; "
-        "3) No son genéricos (evita 'hacer', 'tener'); "
+        "3) No son genéricos (evita 'hacer', 'tener', 'llevar'); "
         "4) Son diferentes entre sí; 5) En infinitivo; 6) Mezcla de dificultades. "
         "Responde SOLO con JSON válido, sin texto adicional. "
         'Formato: {"contexto":"string","verbos":["v1","v2","v3","v4","v5","v6","v7"]}'
@@ -41,43 +42,57 @@ def verb_by_difficulty(contexto: str, verbos: List[str]) -> str:
 
 def pair_subject_object(contexto: str, verbos_clasificados: dict, nivel: str, n_oraciones: int = 3) -> str:
     """
-    contexto: str (p.ej., "hacer mercado")
     verbos_clasificados: dict con llaves "facil" | "medio" | "dificil" y listas de verbos (salida del Prompt 2)
     nivel: "facil" | "medio" | "dificil"
     n_oraciones: cuántas oraciones disyuntivas generar (por defecto 3)
     """
     return (
         "PROMPT 3:\n\n"
-        f"Contexto: '{contexto}'.\n"
+        f"Contexto: {contexto}\n"
         f"Verbos clasificados: {verbos_clasificados}\n"
         f"Nivel solicitado: {nivel}\n\n"
         "Toma un ÚNICO verbo del nivel indicado y genera oraciones en español siguiendo estas reglas:\n"
         f"- Cantidad: exactamente {n_oraciones} oraciones simples (sujeto + verbo + objeto) usando SIEMPRE el MISMO verbo.\n"
-        "- Disyuntivas entre sí: cada sujeto debe vincularse a un objeto que no pueda usarse con otro sujeto de la lista. \n"
-        "estas oraciones haran parte de un ejercicio de emparejamiento, por lo que no deben ser intercambiables.\n"
+        "- Disyuntivas entre sí: cada sujeto debe vincularse a un objeto que no pueda usarse con otro sujeto de la lista; si intercambias sujeto u objeto entre oraciones y sigue teniendo sentido, la oración es inválida y debe reemplazarse.\n"
         "- Especificidad máxima: las oraciones deben ser tan concretas y únicas que sea imposible intercambiar sujeto y objeto sin perder el sentido.\n"
-        "- Variedad: las oraciones deben ser diferentes en contexto/tema; pueden ser creativas.\n"
+        "- Variedad: oraciones en contextos/temas distintos.\n"
         "- Conjugación y gramática correctas (presente del indicativo por defecto). Sin pronombres ni nombres propios.\n"
-        "- Sujeto: quien realiza la acción (persona/rol/profesión/animal/entidad/cosa), sin pronombres ni nombres propios.\n"
-        "- Objeto: quien/lo que recibe la acción (persona/objeto/tema), con sentido directo respecto del verbo.\n\n"
+        "- Sujeto: rol/profesión/entidad típicamente **agente** del verbo elegido.\n"
+        "- Objeto: persona/objeto/documento típicamente **paciente** o **resultado** del verbo elegido.\n\n"
+        "Reglas de PROTOTIPICIDAD (obligatorias):\n"
+        "1) Compatibilidad verbo–sujeto: el SUJETO debe ser un agente habitual del verbo (p. ej., si el verbo es transaccional como 'comprar/pagar', agentes típicos: cliente, comprador; para 'enseñar', agente típico: docente/mentor; para 'pesar', agente: dependiente/operario; etc.).\n"
+        "2) Compatibilidad verbo–objeto: el OBJETO debe ser una entidad canónica del verbo (p. ej., para 'comprar': productos/mercancías concretas, 'pagar': factura/recibo/cuenta, 'consultar': profesional o fuente de información, 'enseñar': lección/tarea/contenido, 'pesar': fruta/carne/paquete).\n"
+        "3) Evita combinaciones inter-dominio débiles o atípicas (ej.: roles educativos con acciones de ingesta; roles familiares con objetos institucionales si no hay vínculo típico con el verbo). Si una combinación no sería reconocida como natural por la mayoría de hablantes, **reescríbela antes de responder**.\n"
+        "4) Cobertura de tipos de OBJETO en el conjunto: usa tres tipos distintos entre las oraciones del conjunto: "
+        "(a) persona profesional/institucional pertinente al verbo; "
+        "(b) objeto/documento/herramienta típica del verbo; "
+        "(c) persona de vínculo cercano/autoridad/tutor SOLO si es prototípica para el verbo (p. ej., 'consultar al padre' es válido; 'padre compra uniforme' NO es suficientemente prototípico para 'comprar').\n"
+        "5) Prohibido usar sujetos u objetos que hagan la relación trivial o genérica ('persona', 'cosa', 'elemento', etc.).\n"
+        "6) Exactamente UNA de las oraciones debe estar directamente relacionada con el contexto dado "
+        f"('{contexto}'). Las otras deben ser plausibles y prototípicas aunque no dependan del contexto.\n\n"
+        "7) Autochequeo interno (NO lo incluyas en la salida): verifica para cada oración: "
+        "(a) sujeto = agente típico del verbo; "
+        "(b) objeto = paciente/resultado típico del verbo; "
+        "(c) si intercambias S/O, pierde sentido; "
+        "(d) no hay solapamiento de tipo de objeto entre las tres oraciones; "
+        "(e) descarta pares con prototipicidad baja y reescríbelos.\n\n"
         "Criterios por nivel de dificultad para elegir SUJETO y OBJETO:\n"
         "- Fácil:\n"
-        "  • Sujeto: sustantivo de UNA sola palabra, cotidiano y familiar (p.ej., roles comunes o categorías simples).\n"
-        "  • Objeto: sustantivo/objeto de UNA o DOS palabras, cotidiano y familiar.\n"
+        "  • Sujeto: sustantivo de UNA palabra, rol/categoría común (agente típico del verbo).\n"
+        "  • Objeto: UNA o DOS palabras, producto/documento/fuente típica del verbo.\n"
         "- Medio:\n"
-        "  • Sujeto: sintagma nominal de DOS palabras (p.ej., rol + adjetivo / categoría + especificador), cotidiano pero más específico.\n"
-        "  • Objeto: sintagma nominal de DOS o TRES palabras con descriptor concreto (p.ej., 'fruta madura', 'lista de compras').\n"
+        "  • Sujeto: UNA–DOS palabras (rol + adjetivo/categoría + especificador) aún prototípico del verbo.\n"
+        "  • Objeto: UNA–TRES palabras con descriptor concreto (documento/herramienta/contenido típico del verbo).\n"
         "- Difícil:\n"
-        "  • Sujeto: sintagma nominal de DOS o TRES palabras con modificador(es) que aumenten especificidad (colectivos, compuestos, adjetivos calificativos), evitando nombres propios.\n"
-        "  • Objeto: sintagma nominal de TRES a CINCO palabras con alto nivel de concreción (puede incluir especificadores como 'de/para' siempre que siga siendo objeto directo plausible, p.ej., 'registro de inventario semanal').\n\n"
+        "  • Sujeto: DOS–TRES palabras con modificadores que aumenten especificidad (colectivos/compuestos/adjetivos), sin nombres propios.\n"
+        "  • Objeto: TRES–CINCO palabras con alta concreción (puede incluir 'de/para') manteniendo objeto directo plausible y típico del verbo.\n\n"
         "Salida obligatoria: responde SOLO con JSON válido, sin texto adicional.\n"
         "Formato de salida:\n"
-        '{'
-        '"contexto":"'+ contexto + '",'
-        '"nivel":"'+ nivel + '",'
-        '"verbo_seleccionado":"string",'
-        '"oraciones":['
-        '{"oracion":"string","sujeto":"string","objeto":"string"}'
+        "{"
+        f"\"nivel\":\"{nivel}\","
+        "\"verbo_seleccionado\":\"string\","
+        "\"oraciones\":["
+        "{\"oracion\":\"string\",\"sujeto\":\"string\",\"objeto\":\"string\"}"
         "]}"
     )
 
@@ -229,7 +244,7 @@ def run_prompt(prompt: str) -> Dict[str, Any]:
 def main(contexto: str):
     # -------- Parámetros de entrada --------
     #contexto = "hacer mercado"
-    nivel_dificultad = "medio"   # "facil" | "medio" | "dificil"
+    nivel_dificultad = "facil"   # "facil" | "medio" | "dificil"
     n_oraciones_disyuntivas = 3  # cantidad de oraciones SVC en paso 3
 
     # -------- Paso 1: Verbos (7) --------
