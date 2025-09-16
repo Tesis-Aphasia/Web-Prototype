@@ -1,0 +1,51 @@
+{
+  "contexto": "hacer mercado",
+  "idioma": "es",
+  "verbs": ["comprar","pagar","pesar","consultar"],
+  "nivel": "facil",
+
+  "json_final": {
+    "verbo": "comprar",
+    "pares": [
+      {
+        "sujeto":"cliente",
+        "objeto":"pan",
+        "expansiones":{
+          "donde":{"opciones":["En la panadería del barrio","En la ferretería","En la farmacia","En la librería"],"opcion_correcta":"En la panadería del barrio"},
+          "cuando":{"opciones":["Por la mañana, antes del desayuno","A medianoche","Durante una tormenta eléctrica","En la graduación universitaria"],"opcion_correcta":"Por la mañana, antes del desayuno"},
+          "por_que":{"opciones":["Porque necesita pan fresco para el desayuno","Porque quiere arreglar una lámpara","Porque busca un libro nuevo","Porque va a enviar una carta"],"opcion_correcta":"Porque necesita pan fresco para el desayuno"}
+        }
+      },
+      {
+        "sujeto":"turista",
+        "objeto":"postal",
+        "expansiones":{
+          "donde":{"opciones":["En la tienda de recuerdos del museo","En la carnicería","En el taller mecánico","En la peluquería"],"opcion_correcta":"En la tienda de recuerdos del museo"},
+          "cuando":{"opciones":["Durante su visita al museo","Mientras cocina en casa","Durante una consulta médica","Mientras corre una maratón"],"opcion_correcta":"Durante su visita al museo"},
+          "por_que":{"opciones":["Porque quiere enviar recuerdos a su familia","Porque necesita pan para la cena","Porque va a reparar su coche","Porque necesita cortarse el cabello"],"opcion_correcta":"Porque quiere enviar recuerdos a su familia"}
+        }
+      },
+      {
+        "sujeto":"estudiante",
+        "objeto":"cuaderno",
+        "expansiones":{
+          "donde":{"opciones":["En la papelería cerca de la escuela","En la pescadería","En la gasolinera","En el gimnasio"],"opcion_correcta":"En la papelería cerca de la escuela"},
+          "cuando":{"opciones":["Al inicio del ciclo escolar","Durante un partido de fútbol","Mientras nada en la piscina","En una boda"],"opcion_correcta":"Al inicio del ciclo escolar"},
+          "por_que":{"opciones":["Porque necesita tomar apuntes en clase","Porque va a cocinar pescado","Porque va a hacer ejercicio","Porque va a cargar gasolina"],"opcion_correcta":"Porque necesita tomar apuntes en clase"}
+        }
+      }
+    ],
+    "oraciones":[
+      {"oracion":"El cliente compra pan.","correcta":true},
+      {"oracion":"El turista compra una postal.","correcta":true},
+      {"oracion":"El estudiante compra un cuaderno.","correcta":true},
+      {"oracion":"El perro compra una bicicleta.","correcta":false},
+      {"oracion":"La nube compra zapatos.","correcta":false},
+      {"oracion":"María compra leche en el supermercado.","correcta":true},
+      {"oracion":"El árbol compra agua.","correcta":false},
+      {"oracion":"El profesor compra libros.","correcta":true},
+      {"oracion":"La silla compra comida.","correcta":false},
+      {"oracion":"El niño compra caramelos.","correcta":true}
+    ]
+  }
+}
