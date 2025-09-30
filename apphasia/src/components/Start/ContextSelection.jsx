@@ -31,7 +31,7 @@ const ContextSelection = ({ onNext }) => {
       const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ context: selectedContextInfo }),
+        body: JSON.stringify({ context: selectedContextInfo, nivel : 'facil' }),
       });
       if (!res.ok) {
         const text = await res.text();
@@ -39,7 +39,7 @@ const ContextSelection = ({ onNext }) => {
       }
       const data = await res.json();
       setExercise(data);
-      onNext(selectedContextInfo);
+      onNext(data);
     } catch (e) {
       setError(e.message || "Error enviando el contexto");
     } finally {

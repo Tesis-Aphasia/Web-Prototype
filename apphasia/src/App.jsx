@@ -17,8 +17,9 @@ function App() {
   const [evaluatedSentences, setEvaluatedSentences] = useState([]);
 
   // ---- Handlers del flujo de usuario ----
-  const handleContextSelectionNext = (context) => {
-    setSelectedContext(context);
+  const handleContextSelectionNext = (exerciseData) => {
+    setSelectedContext(exerciseData.context_hint); 
+    setSelectedActionDetails(exerciseData); 
     setCurrentStep(2);
   };
   const handleActionSelectionNext = (details) => {
