@@ -1,0 +1,145 @@
+:root {
+  --orange: #F27E2A;        /* naranja botón */
+  --orange-dark: #E06414;
+  --beige: #F3E3CE;         /* beige estilo Stitch */
+  --beige-hover: #EED8BF;
+  --text-orange: #C85C14;   /* texto en botones beige */
+}
+
+/* ---- Contenedor principal ---- */
+.register-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  padding: 1.5rem;
+}
+
+.register-card {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+}
+
+/* ---- Títulos y subtítulos ---- */
+.register-title {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  color: #111827;
+}
+
+.register-subtitle {
+  font-size: 1.125rem;
+  color: #374151;
+  margin-bottom: 1.5rem;
+}
+
+/* ---- Labels ---- */
+.register-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #111827;
+  margin-bottom: 0.25rem;
+  text-align: left;
+}
+
+/* ---- Inputs ---- */
+.register-input {
+  width: 100%;
+  border: 2px solid #d1d5db;
+  border-radius: 0.75rem;
+  padding: 0.9rem;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  color: #111827;
+  background: #fff;
+}
+
+.register-input::placeholder {
+  color: #6b7280;
+}
+
+/* ---- Botones ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  border-radius: 1rem;
+  height: 56px;
+  padding: 0 24px;
+  transition: background 0.15s ease;
+}
+
+/* naranja */
+.btn-primary {
+  background: var(--orange);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--orange-dark);
+}
+
+/* beige */
+.btn-beige {
+  background: var(--beige);
+  color: var(--text-orange);
+}
+.btn-beige:hover {
+  background: var(--beige-hover);
+}
+
+/* contenedor de Atrás/Siguiente */
+.register-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 24px;
+}
+.register-actions .btn {
+  width: 100%;
+}
+
+/* Cancelar ancho completo */
+.register-cancel {
+  width: 100%;
+  margin-top: 16px;
+}
+
+/* lista de hijos añadidos */
+.register-list {
+  text-align: left;
+  margin-top: 0.5rem;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.btn-back {
+  background: #e5e7eb; /* gris claro */
+  color: #374151;      /* gris oscuro */
+  font-weight: 500;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  display: inline-block;
+  margin-top: 1rem;
+}
+
+.btn-back:hover {
+  background: #d1d5db;
+}

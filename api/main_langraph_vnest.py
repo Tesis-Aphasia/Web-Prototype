@@ -60,12 +60,24 @@ def _normalize_for_front(doc_id: str, data: dict) -> dict:
         "oraciones": data.get("oraciones", []),
     }
 
-def get_exercise_from_db(verbo: str) -> Optional[dict]:
-    q = db.collection("exercises").where("verbo", "==", verbo).limit(1)
+def get_exercise_from_db(verbo: str, nivel: Optional[str] = None, context_hint: Optional[str] = None) -> Optional[dict]:
+    """
+    Busca un ejercicio en Firestore por verbo + nivel + (opcionalmente) contexto.
+    Devuelve el documento normalizado o None si no hay coincidencia.
+    """
+    q = db.collection("exercises").where("verbo", "==", verbo)
+    if nivel:
+        q = q.where("nivel", "==", nivel)
+
+    if context_hint:
+        q = q.where("context_hint", "==", context_hint)
+
+    q = q.limit(1)
     docs = q.stream()
     for d in docs:
         return _normalize_for_front(d.id, d.to_dict())
     return None
+
 
 def save_exercise_to_db(verbo, nivel, context_hint, reviewed, pares, oraciones) -> str:
     doc = {
@@ -192,29 +204,33 @@ def step4_expand_sentences(state: ExerciseState) -> ExerciseState:
 
 def step5_save_db(state: ExerciseState) -> ExerciseState:
     """Lee/guarda en Firestore y normaliza salida para el front."""
-    # Fallback seguro
+
+    # Fallback seguro para verbo
     verbo_final = (state.get("verbo") or state.get("verbo_seleccionado") or "").strip()
     if not verbo_final:
         raise ValueError("State sin 'verbo' y sin 'verbo_seleccionado' en step5.")
 
-    # 1) Reusar si existe
-    ejercicio = get_exercise_from_db(verbo_final)
+    nivel = state.get("nivel")
+    contexto = state.get("contexto")
+
+    # 1) Reusar si existe (verbo + nivel + contexto)
+    ejercicio = get_exercise_from_db(verbo_final, nivel=nivel, context_hint=contexto)
     if ejercicio:
         return {
             "doc_id": ejercicio["id"],
             "verbo": ejercicio["verbo"],
-            "nivel": ejercicio.get("nivel", state.get("nivel")),
-            "contexto": ejercicio.get("context_hint", state.get("contexto")),
+            "nivel": ejercicio.get("nivel", nivel),
+            "contexto": ejercicio.get("context_hint", contexto),
             "reviewed": ejercicio.get("reviewed", False),
             "pares": ejercicio.get("pares", []),
             "oraciones": ejercicio.get("oraciones", []),
         }
 
-    # 2) Guardar
+    # 2) Guardar nuevo si no existe
     doc_id = save_exercise_to_db(
         verbo=verbo_final,
-        nivel=state["nivel"],
-        context_hint=state["contexto"],
+        nivel=nivel,
+        context_hint=contexto,
         reviewed=False,
         pares=state.get("pares", []),
         oraciones=state.get("oraciones", []),
@@ -222,15 +238,38 @@ def step5_save_db(state: ExerciseState) -> ExerciseState:
     return {
         "doc_id": doc_id,
         "verbo": verbo_final,
-        "nivel": state["nivel"],
-        "contexto": state["contexto"],
+        "nivel": nivel,
+        "contexto": contexto,
         "reviewed": False,
+        "pares": state.get("pares", []),
+        "oraciones": state.get("oraciones", []),
     }
+
 
 
 # ==============================
 # GRAFO
 # ==============================
+
+def export_graph_mermaid_manual(out_path: str = "langgraph_vnest.mmd") -> str:
+    """
+    Genera un diagrama Mermaid del flujo VNeST sin depender de APIs internas de LangGraph.
+    """
+    mermaid = [
+        "flowchart TD",
+        "  START([Start]) --> step1_generate_verbs[step1_generate_verbs: genera 7 verbos]",
+        "  step1_generate_verbs --> step2_classify_verbs[step2_classify_verbs: clasifica verbos]",
+        "  step2_classify_verbs --> step3_select_pairs[step3_select_pairs: selecciona verbo y 3 SVO]",
+        "  step3_select_pairs --> step4_expand_sentences[step4_expand_sentences: expansiones + 10 oraciones]",
+        "  step4_expand_sentences --> step5_save_db[step5_save_db: lee/guarda en Firestore]",
+        "  step5_save_db --> END([Finish])",
+    ]
+    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(mermaid))
+    return os.path.abspath(out_path)
+
+
 def build_graph():
     graph = StateGraph(ExerciseState)
 
@@ -253,7 +292,7 @@ def build_graph():
 # ==============================
 # MAIN
 # ==============================
-def main_langraph_vnest(contexto: str, nivel="facil"):
+def main_langraph_vnest(contexto: str, nivel="medio"):
     workflow = build_graph()
     initial_state = {"contexto": contexto, "nivel": nivel}
     final_state = workflow.invoke(initial_state)
@@ -270,5 +309,9 @@ def main_langraph_vnest(contexto: str, nivel="facil"):
 
 
 if __name__ == "__main__":
+    build_graph()
+    path = export_graph_mermaid_manual("graphs/langgraph_vnest.mmd")
+    print("✅ Mermaid exportado en:", path)
+
     resultado = main_langraph_vnest("Un hospital")
-    print(json.dumps(resultado, indent=2, ensure_ascii=False))
+    #print(json.dumps(resultado, indent=2, ensure_ascii=False))

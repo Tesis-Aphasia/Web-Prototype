@@ -1,0 +1,49 @@
+.sr-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: #f9fafb;
+  padding: 1.5rem;
+}
+
+.sr-card {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+}
+
+.sr-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+}
+
+.sr-subtitle {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 1rem;
+}
+
+.sr-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sr-input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  padding: 0.9rem;
+  border-radius: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.05rem;
+}
+
+.sr-exit {
+  margin-top: 1rem;
+}

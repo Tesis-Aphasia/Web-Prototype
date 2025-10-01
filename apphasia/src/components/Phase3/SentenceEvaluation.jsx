@@ -12,7 +12,7 @@ function shuffle(arr) {
   return a;
 }
 
-const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
+const SentenceEvaluation = ({ onNext, onPrevious }) => {
   const { exercise } = useExercise();
 
   const initial = useMemo(() => {
@@ -132,7 +132,8 @@ const SentenceEvaluation = ({ onNext, onPrevious, previousData }) => {
   // Decididas hasta el momento (en orden)
   const decided = sentences
     .slice(0, index)
-    .filter((s) => s.status !== "pending");
+    .filter((s) => s.status !== "pending")
+    .reverse();
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
