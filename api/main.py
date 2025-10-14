@@ -24,9 +24,10 @@ app.add_middleware(
 )
 
 class ContextPayload(BaseModel):
-    user_id: str
     context: str
-    nivel: str = "facil"   # opcional, default "facil"
+    nivel: str
+    creado_por: str
+    tipo: str 
 
 class SRPayload(BaseModel):
     user_id: str
@@ -44,8 +45,9 @@ def read_root():
 # Endpoint para generar un ejercicio dado un contexto - usado por el terapeuta
 @app.post("/context/generate")
 def create_exercise(payload: ContextPayload):
+    print("Payload recibido:", payload)
     #response = back.main(payload.context)
-    response = main_langraph_vnest(payload.context, nivel=payload.nivel)
+    response = main_langraph_vnest(payload.context, payload.nivel, payload.creado_por, payload.tipo)
     return response
 
 # Endpoint para asignar o buscar un ejercicio para el paciente - usado por la app móvil

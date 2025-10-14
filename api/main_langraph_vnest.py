@@ -8,6 +8,8 @@ from langgraph.graph import StateGraph
 from langchain_core.tools import tool
 from openai import AzureOpenAI
 
+import uuid
+
 # ==============================
 # FIREBASE CONFIG
 # ==============================
@@ -38,6 +40,8 @@ def get_client() -> AzureOpenAI:
 class ExerciseState(TypedDict, total=False):
     contexto: str
     nivel: str
+    tipo: str  # 👈 agregado
+    creado_por: str   # 👈 agregado (para claridad)
     verbos: List[str]
     verbos_clasificados: Dict[str, List[str]]
     verbo_seleccionado: str
@@ -45,7 +49,6 @@ class ExerciseState(TypedDict, total=False):
     pares: List[Dict]
     oraciones: List[Dict]
     doc_id: Optional[str]
-
 # ==============================
 # HELPERS FIRESTORE
 # ==============================
@@ -59,37 +62,6 @@ def _normalize_for_front(doc_id: str, data: dict) -> dict:
         "pares": data.get("pares", []),
         "oraciones": data.get("oraciones", []),
     }
-
-def get_exercise_from_db(verbo: str, nivel: Optional[str] = None, context_hint: Optional[str] = None) -> Optional[dict]:
-    """
-    Busca un ejercicio en Firestore por verbo + nivel + (opcionalmente) contexto.
-    Devuelve el documento normalizado o None si no hay coincidencia.
-    """
-    q = db.collection("exercises").where("verbo", "==", verbo)
-    if nivel:
-        q = q.where("nivel", "==", nivel)
-
-    if context_hint:
-        q = q.where("context_hint", "==", context_hint)
-
-    q = q.limit(1)
-    docs = q.stream()
-    for d in docs:
-        return _normalize_for_front(d.id, d.to_dict())
-    return None
-
-
-def save_exercise_to_db(verbo, nivel, context_hint, reviewed, pares, oraciones) -> str:
-    doc = {
-        "verbo": verbo,
-        "nivel": nivel,
-        "context_hint": context_hint,
-        "reviewed": bool(reviewed),
-        "pares": pares,
-        "oraciones": oraciones,
-    }
-    ref = db.collection("exercises").add(doc)[1]
-    return ref.id
 
 # ==============================
 # PROMPTS (importados)
@@ -203,49 +175,59 @@ def step4_expand_sentences(state: ExerciseState) -> ExerciseState:
 
 
 def step5_save_db(state: ExerciseState) -> ExerciseState:
-    """Lee/guarda en Firestore y normaliza salida para el front."""
+    """
+    Guarda directamente el nuevo ejercicio generado por el terapeuta.
+    Crea documentos en:
+      - 'ejercicios' (información general)
+      - 'ejercicios_VNEST' (contenido extendido)
+    """
 
-    # Fallback seguro para verbo
     verbo_final = (state.get("verbo") or state.get("verbo_seleccionado") or "").strip()
     if not verbo_final:
-        raise ValueError("State sin 'verbo' y sin 'verbo_seleccionado' en step5.")
+        raise ValueError("State sin 'verbo' en step5_save_db.")
 
     nivel = state.get("nivel")
     contexto = state.get("contexto")
+    pares = state.get("pares", [])
+    oraciones = state.get("oraciones", [])
+    creado_por = state.get("creado_por", "terapeuta_anonimo")
+    visibilidad = state.get("visibilidad", "privado")  # o "publico"
 
-    # 1) Reusar si existe (verbo + nivel + contexto)
-    ejercicio = get_exercise_from_db(verbo_final, nivel=nivel, context_hint=contexto)
-    if ejercicio:
-        return {
-            "doc_id": ejercicio["id"],
-            "verbo": ejercicio["verbo"],
-            "nivel": ejercicio.get("nivel", nivel),
-            "contexto": ejercicio.get("context_hint", contexto),
-            "reviewed": ejercicio.get("reviewed", False),
-            "pares": ejercicio.get("pares", []),
-            "oraciones": ejercicio.get("oraciones", []),
-        }
+    # Generar ID único tipo E###
+    doc_id = f"E{uuid.uuid4().hex[:6].upper()}"
 
-    # 2) Guardar nuevo si no existe
-    doc_id = save_exercise_to_db(
-        verbo=verbo_final,
-        nivel=nivel,
-        context_hint=contexto,
-        reviewed=False,
-        pares=state.get("pares", []),
-        oraciones=state.get("oraciones", []),
-    )
+    # 1️⃣ Guardar información general
+    general_doc = {
+        "id": doc_id,
+        "terapia": "VNEST",
+        "revisado": False,
+        "tipo": visibilidad,
+        "creado_por": creado_por,
+    }
+    db.collection("ejercicios").document(doc_id).set(general_doc)
+
+    # 2️⃣ Guardar contenido extendido (ejercicios_VNEST)
+    vnest_doc = {
+        "id_ejercicio_general": doc_id,
+        "nivel": nivel,
+        "contexto": contexto,
+        "verbo": verbo_final,
+        "oraciones": oraciones,
+        "pares": pares
+    }
+    db.collection("ejercicios_VNEST").document(doc_id).set(vnest_doc)
+
+    print(f"✅ Nuevo ejercicio VNeST guardado correctamente: {doc_id}")
+
     return {
         "doc_id": doc_id,
         "verbo": verbo_final,
         "nivel": nivel,
         "contexto": contexto,
         "reviewed": False,
-        "pares": state.get("pares", []),
-        "oraciones": state.get("oraciones", []),
+        "pares": pares,
+        "oraciones": oraciones,
     }
-
-
 
 # ==============================
 # GRAFO
@@ -292,9 +274,9 @@ def build_graph():
 # ==============================
 # MAIN
 # ==============================
-def main_langraph_vnest(contexto: str, nivel="medio"):
+def main_langraph_vnest(contexto: str, nivel: str, creado_por: str, tipo: str) -> dict:
     workflow = build_graph()
-    initial_state = {"contexto": contexto, "nivel": nivel}
+    initial_state = {"contexto": contexto, "nivel": nivel, "creado_por": creado_por, "tipo": tipo}
     final_state = workflow.invoke(initial_state)
 
     return {
