@@ -1,0 +1,80 @@
+:root {
+  --primary: #ef7e06;
+  --primary-dark: #d86e03;
+}
+
+/* Fondo general con degradado */
+.pacientes-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #ffffff 0%, #fff6eb 40%, #ffe5c4 80%, var(--primary) 100%);
+  background-attachment: fixed;
+  font-family: "Inter", sans-serif;
+}
+
+/* Navbar */
+.navbar .nav-link {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #444;
+  transition: color 0.2s ease;
+}
+
+.navbar .nav-link:hover {
+  color: var(--primary);
+}
+
+.btn-outline-primary {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* Botones principales */
+.btn-primary {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  transition: all 0.25s ease;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+
+/* Tabla */
+.table-row {
+  cursor: pointer;
+  transition: background-color 0.25s ease;
+}
+
+.table-row:hover {
+  background-color: rgba(239, 126, 6, 0.08);
+}
+
+.table-active {
+  background-color: rgba(239, 126, 6, 0.15) !important;
+}
+
+/* Cards */
+.card {
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border-radius: 1rem;
+}
+
+.card h4 {
+  color: #222;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .navbar {
+    flex-wrap: wrap;
+  }
+}
