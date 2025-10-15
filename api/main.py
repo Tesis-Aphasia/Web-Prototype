@@ -9,7 +9,7 @@ from firebase_admin import firestore
 from main_langraph_vnest import main_langraph_vnest 
 from main_langraph_sr import main_langraph_sr
 from main_personalization import main_personalization
-from assign_logic import get_exercise_for_context
+from assign_logic import assign_exercise_to_patient, get_exercise_for_context
 
 app = FastAPI()
 
@@ -24,6 +24,10 @@ app.add_middleware(
 )
 
 class ContextPayload(BaseModel):
+    context: str
+    nivel: str
+
+class ContextGeneratePayload(BaseModel):
     context: str
     nivel: str
     creado_por: str
@@ -76,6 +80,16 @@ def personalize_exercise(payload: SRPayload, exercise_type: str, exercise_id: st
     response = main_personalization(payload.user_id, exercise_type, exercise_id, payload.profile)
     return response
 
+# Endpoint para asignar un ejercicio - usado por el terapeuta
+@app.post("/assign-exercise/")
+def assign_exercise(payload: ContextPayload, exercise_id: str):
+    try:
+        assign_exercise_to_patient(payload.user_id, exercise_id, payload.context)
+        return {"ok": True, "message": f"Ejercicio {exercise_id} asignado al paciente {payload.user_id} en contexto {payload.context}"}
+    except Exception as e:
+        return {"error": str(e)}
+
+# Endpoint para completar un ejercicio - usado por la app móvil
 @app.post("/complete-exercise/")
 def complete_exercise(payload: CompletePayload):
     """

@@ -5,6 +5,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from openai import AzureOpenAI
 from prompts_personalization import generate_personalization_prompt
+from assign_logic import assign_exercise_to_patient
 
 # ==============================
 # FIREBASE CONFIG
@@ -111,30 +112,9 @@ def main_personalization(exercise_id: str, patient_profile: Dict[str, Any]):
     new_id = save_personalized_exercise(result)
 
     context = result.get("contexto", "General")
-    assign_to_patient(user_id, new_id, context)
+    assign_exercise_to_patient(user_id, new_id, context)
 
     return {"ok": True, "saved_id": new_id, "personalized": result}
-
-def assign_to_patient(user_id: str, exercise_id: str, context: str):
-    """
-    Registra el ejercicio personalizado en la cola del paciente (ejerciciosAsignados).
-    """
-    col_ref = db.collection("patients").document(user_id).collection("ejerciciosAsignados")
-    docs = col_ref.stream()
-    priorities = [int(d.to_dict().get("prioridad", 0)) for d in docs if d.to_dict().get("prioridad") is not None]
-    next_priority = max(priorities) + 1 if priorities else 1
-
-    col_ref.document(exercise_id).set({
-        "id_ejercicio": f"/exercises/{exercise_id}",
-        "contexto": context,
-        "estado": "pendiente",
-        "prioridad": next_priority,
-        "ultima_fecha": None,
-        "veces_realizado": 0
-    })
-
-    print(f"✅ Ejercicio {exercise_id} asignado a {user_id} con prioridad {next_priority}")
-
 
 # ==============================
 # TEST (EJEMPLO)

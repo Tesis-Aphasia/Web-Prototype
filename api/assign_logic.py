@@ -8,23 +8,23 @@ db = firestore.client()
 # =====================================
 
 def load_exercise(exercise_id: str):
-    """Carga el contenido del ejercicio desde /exercises/{id}"""
-    doc = db.collection("exercises").document(exercise_id).get()
+    """Carga el contenido del ejercicio desde /ejercicios/{id}"""
+    doc = db.collection("ejercicios_VNEST").document(exercise_id).get()
     return doc.to_dict()
 
 def assign_exercise_to_patient(patient_id: str, exercise_id: str, context: str):
     """Crea el registro en /patients/{id}/ejerciciosAsignados/"""
-    col_ref = db.collection("patients").document(patient_id).collection("ejerciciosAsignados")
+    col_ref = db.collection("patients").document(patient_id).collection("ejercicios_asignados")
     docs = col_ref.stream()
     priorities = [d.to_dict().get("prioridad", 0) for d in docs]
     next_priority = max(priorities) + 1 if priorities else 1
 
     col_ref.document(exercise_id).set({
-        "id_ejercicio": f"/exercises/{exercise_id}",
+        "id_ejercicio": f"/ejercicios_VNEST/{exercise_id}",
         "contexto": context,
         "estado": "pendiente",
         "prioridad": next_priority,
-        "ultima_fecha": None,
+        "ultima_fecha_realizado": None,
         "veces_realizado": 0
     })
 
@@ -32,7 +32,7 @@ def get_exercise_for_context(patient_id: str, context: str):
     """Selecciona qué ejercicio mostrar según el estado del paciente"""
 
     # 1️⃣ Buscar ejercicios asignados de ese contexto
-    assigned = db.collection("patients").document(patient_id).collection("ejerciciosAsignados")\
+    assigned = db.collection("pacientes").document(patient_id).collection("ejercicios_asignados")\
         .where("contexto", "==", context).stream()
 
     assigned_list = [doc.to_dict() for doc in assigned]
@@ -46,8 +46,8 @@ def get_exercise_for_context(patient_id: str, context: str):
         ex_id = next_ex["id_ejercicio"].split("/")[-1]
         return load_exercise(ex_id)
 
-    # 3️⃣ Si no hay pendientes → buscar nuevos ejercicios en /exercises
-    all_context = db.collection("exercises").where("contexto", "==", context).stream()
+    # 3️⃣ Si no hay pendientes → buscar nuevos ejercicios en /ejercicios
+    all_context = db.collection("ejercicios_VNEST").where("contexto", "==", context).stream()
     all_ids = [doc.id for doc in all_context]
 
     assigned_ids = [e["id_ejercicio"].split("/")[-1] for e in assigned_list]
@@ -60,7 +60,7 @@ def get_exercise_for_context(patient_id: str, context: str):
 
     # 4️⃣ Si ya hizo todos → mostrar el más antiguo
     if completed:
-        old_ex = sorted(completed, key=lambda e: e.get("ultima_fecha") or "9999-12-31")[0]
+        old_ex = sorted(completed, key=lambda e: e.get("ultima_fecha_realizado") or "9999-12-31")[0]
         ex_id = old_ex["id_ejercicio"].split("/")[-1]
         return load_exercise(ex_id)
 
