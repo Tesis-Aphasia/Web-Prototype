@@ -57,7 +57,8 @@ def assign_exercise_to_patient(patient_id: str, exercise_id: str):
             "estado": "pendiente",
             "prioridad": next_priority,
             "ultima_fecha_realizado": None,
-            "veces_realizado": 0
+            "veces_realizado": 0,
+            "fecha_asignacion": firestore.SERVER_TIMESTAMP,
         })
 
         print(f"✅ Ejercicio {exercise_id} asignado correctamente al paciente {patient_id}")

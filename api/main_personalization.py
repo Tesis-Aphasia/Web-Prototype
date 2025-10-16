@@ -98,6 +98,7 @@ def save_personalized_exercise(exercise_data: Dict[str, Any]):
         "id_paciente": exercise_data.get("id_paciente"),
         "descripcion_adaptado": exercise_data.get("descripcion_adaptado", ""),
         "contexto": exercise_data.get("contexto"),
+        "fecha_creacion": firestore.SERVER_TIMESTAMP,
     }
 
     # --- 3️⃣ Guardar en la colección general ---

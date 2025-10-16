@@ -209,6 +209,7 @@ def step5_save_db(state: ExerciseState) -> ExerciseState:
         "referencia_base": None,
         "id_paciente": None,
         "descripcion_adaptado": "",
+        "fecha_creacion": firestore.SERVER_TIMESTAMP,
     }
     db.collection("ejercicios").document(doc_id).set(general_doc)
 
