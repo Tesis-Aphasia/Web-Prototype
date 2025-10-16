@@ -96,7 +96,7 @@ def get_exercise_for_context(email: str, context: str):
 
     if available:
         new_id = random.choice(available)
-        assign_exercise_to_patient(email, new_id, context)
+        assign_exercise_to_patient(email, new_id)
         return load_exercise(new_id)
 
     # 4️⃣ Si ya hizo todos → mostrar el más antiguo completado

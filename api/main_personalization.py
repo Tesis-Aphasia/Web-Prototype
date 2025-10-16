@@ -1,4 +1,5 @@
 import os, json
+from dotenv import load_dotenv
 from typing import Dict, Any
 from typing_extensions import TypedDict
 import firebase_admin
@@ -20,9 +21,10 @@ db = firestore.client()
 # ==============================
 # AZURE CONFIG
 # ==============================
+load_dotenv("env.env")
 AZURE_ENDPOINT = "https://invuniandesai-2.openai.azure.com/"
 AZURE_DEPLOYMENT = "gpt-4.1"
-AZURE_API_KEY = os.getenv("AZURE_API_KEY", "")
+AZURE_API_KEY = os.getenv("AZURE_API_KEY")
 AZURE_API_VERSION = "2024-12-01-preview"
 
 def get_client() -> AzureOpenAI:

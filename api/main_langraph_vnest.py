@@ -1,4 +1,5 @@
 import os, json
+from dotenv import load_dotenv
 from typing import Dict, List, Optional
 from typing_extensions import TypedDict
 import firebase_admin
@@ -22,9 +23,10 @@ db = firestore.client()
 # ==============================
 # AZURE CONFIG
 # ==============================
+load_dotenv("env.env")
 AZURE_ENDPOINT = "https://invuniandesai-2.openai.azure.com/"
 AZURE_DEPLOYMENT = "gpt-4.1"     # tu deployment
-AZURE_API_KEY = os.getenv("AZURE_API_KEY", "")
+AZURE_API_KEY = os.getenv("AZURE_API_KEY")
 AZURE_API_VERSION = "2024-12-01-preview"
 
 def get_client() -> AzureOpenAI:
@@ -191,7 +193,7 @@ def step5_save_db(state: ExerciseState) -> ExerciseState:
     pares = state.get("pares", [])
     oraciones = state.get("oraciones", [])
     creado_por = state.get("creado_por", "terapeuta_anonimo")
-    visibilidad = state.get("visibilidad", "privado")  # o "publico"
+    visibilidad = state.get("tipo", "privado")  # o "publico"
 
     # Generar ID único tipo E###
     doc_id = f"E{uuid.uuid4().hex[:6].upper()}"
@@ -203,6 +205,10 @@ def step5_save_db(state: ExerciseState) -> ExerciseState:
         "revisado": False,
         "tipo": visibilidad,
         "creado_por": creado_por,
+        "personalizado": False,
+        "referencia_base": None,
+        "id_paciente": None,
+        "descripcion_adaptado": "",
     }
     db.collection("ejercicios").document(doc_id).set(general_doc)
 
