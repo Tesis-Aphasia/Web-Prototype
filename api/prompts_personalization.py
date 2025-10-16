@@ -20,13 +20,18 @@ Ejercicio base:
 Instrucciones:
 1. Reemplaza nombres genéricos ("el agricultor", "la persona", "el cliente") 
    por miembros de la familia, lugares, rutinas o intereses del paciente.
-2. No cambies el nivel ni el tipo del ejercicio.
-3. Devuelve un JSON con la misma estructura, pero con el contenido adaptado.
-4. Incluye estos campos adicionales:
+2. En la sección de pares sujeto-verbo-objeto: cambia ÚNICAMENTE 1 sujeto y/o 1 objeto
+   para que reflejen el contexto del paciente. Estos cambios deben ser coherentes y
+   los pares deben seguir teniendo sentido en relacion con el verbo.
+3. En la sección de oraciones: adapta ÚNICAMENTE 3 oraciones para que reflejen el contexto del paciente.
+   Mantén las demás oraciones sin cambios.
+3. No cambies el nivel ni el tipo del ejercicio.
+4. Devuelve un JSON con la misma estructura, pero con el contenido adaptado.
+5. Incluye estos campos adicionales:
    - "id_paciente": "{user_id}"
    - "personalizado": true
    - "referencia_base": "{base_exercise.get('id', '')}"
    - "descripcion_adaptado": breve explicación de cómo se adaptó.
-5. No cambies el contexto original: debe mantenerse igual a "{base_exercise.get('context_hint')}".
+6. No cambies el contexto original: debe mantenerse igual a "{base_exercise.get('context_hint')}".
     """
 
