@@ -53,6 +53,9 @@ class AssignPayload(BaseModel):
     user_id: str
     exercise_id: str
 
+class ContextOnlyPayload(BaseModel):
+    context: str
+
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
