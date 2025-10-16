@@ -12,21 +12,58 @@ def load_exercise(exercise_id: str):
     doc = db.collection("ejercicios_VNEST").document(exercise_id).get()
     return doc.to_dict()
 
-def assign_exercise_to_patient(patient_id: str, exercise_id: str, context: str):
-    """Crea el registro en /patients/{id}/ejerciciosAsignados/"""
-    col_ref = db.collection("pacientes").document(patient_id).collection("ejercicios_asignados")
-    docs = col_ref.stream()
-    priorities = [d.to_dict().get("prioridad", 0) for d in docs]
-    next_priority = max(priorities) + 1 if priorities else 1
+def assign_exercise_to_patient(patient_id: str, exercise_id: str):
+    """
+    Crea el registro en /patients/{id}/ejercicios_asignados/
+    Buscando automáticamente el contexto según el tipo de ejercicio.
+    """
+    try:
+        # 1️⃣ Buscar el ejercicio base para saber su tipo
+        exercise_doc = db.collection("ejercicios").document(exercise_id).get()
+        if not exercise_doc.exists:
+            raise ValueError(f"❌ No existe el ejercicio con ID {exercise_id}")
 
-    col_ref.document(exercise_id).set({
-        "id_ejercicio": exercise_id,
-        "contexto": context,
-        "estado": "pendiente",
-        "prioridad": next_priority,
-        "ultima_fecha_realizado": None,
-        "veces_realizado": 0
-    })
+        exercise_data = exercise_doc.to_dict()
+        tipo = exercise_data.get("terapia")
+
+        if not tipo:
+            raise ValueError(f"⚠️ El ejercicio {exercise_id} no tiene campo 'tipo' definido")
+
+        # 2️⃣ Buscar el contexto según el tipo
+        context = None
+        if tipo == "VNEST":
+            sub_doc = db.collection("ejercicios_VNEST").document(exercise_id).get()
+            if sub_doc.exists:
+                context = sub_doc.to_dict().get("contexto")
+        elif tipo == "SR":
+            sub_doc = db.collection("ejercicios_SR").document(exercise_id).get()
+            if sub_doc.exists:
+                context = sub_doc.to_dict().get("contexto")
+
+        if not context:
+            raise ValueError(f"⚠️ No se encontró el contexto para el ejercicio {exercise_id} (tipo {tipo})")
+
+        # 3️⃣ Calcular la prioridad del nuevo ejercicio
+        col_ref = db.collection("pacientes").document(patient_id).collection("ejercicios_asignados")
+        docs = col_ref.stream()
+        priorities = [d.to_dict().get("prioridad", 0) for d in docs]
+        next_priority = max(priorities) + 1 if priorities else 1
+
+        # 4️⃣ Crear el documento en la subcolección del paciente
+        col_ref.document(exercise_id).set({
+            "id_ejercicio": exercise_id,
+            "contexto": context,
+            "tipo": tipo,
+            "estado": "pendiente",
+            "prioridad": next_priority,
+            "ultima_fecha_realizado": None,
+            "veces_realizado": 0
+        })
+
+        print(f"✅ Ejercicio {exercise_id} asignado correctamente al paciente {patient_id}")
+
+    except Exception as e:
+        print(f"❌ Error al asignar ejercicio: {e}")
 
 def get_exercise_for_context(email: str, context: str):
     """
