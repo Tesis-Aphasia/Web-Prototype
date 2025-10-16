@@ -26,7 +26,7 @@ Instrucciones:
    - "id_paciente": "{user_id}"
    - "personalizado": true
    - "referencia_base": "{base_exercise.get('id', '')}"
-   - "contexto_personal": breve explicación de cómo se adaptó.
+   - "descripcion_adaptado": breve explicación de cómo se adaptó.
 5. No cambies el contexto original: debe mantenerse igual a "{base_exercise.get('context_hint')}".
     """
 

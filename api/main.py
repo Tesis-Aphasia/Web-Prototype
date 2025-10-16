@@ -44,8 +44,14 @@ class CompleteExercisePayload(BaseModel):
     id_ejercicio: str
     contexto: str
 
-class ContextOnlyPayload(BaseModel):    
-    context: str
+class PersonalizePayload(BaseModel):
+    user_id: str
+    exercise_id: str
+    profile: dict
+
+class AssignPayload(BaseModel):
+    user_id: str
+    exercise_id: str
 
 @app.get("/")
 def read_root():
@@ -85,18 +91,16 @@ def create_sr_cards(payload: SRPayload):
 
 # Endpoint para personalizar un ejercicio base - usado por el terapeuta o la app móvil
 @app.post("/personalize-exercise/")
-def personalize_exercise(payload: SRPayload, exercise_type: str, exercise_id: str):
-    response = main_personalization(payload.user_id, exercise_type, exercise_id, payload.profile)
+def personalize_exercise(payload: PersonalizePayload):
+    response = main_personalization(payload.user_id, payload.exercise_id, payload.profile)
     return response
 
 # Endpoint para asignar un ejercicio - usado por el terapeuta
 @app.post("/assign-exercise/")
-def assign_exercise(payload: ContextPayload, exercise_id: str):
-    try:
-        assign_exercise_to_patient(payload.user_id, exercise_id, payload.context)
-        return {"ok": True, "message": f"Ejercicio {exercise_id} asignado al paciente {payload.user_id} en contexto {payload.context}"}
-    except Exception as e:
-        return {"error": str(e)}
+def assign_exercise(payload: AssignPayload):
+    assign_exercise_to_patient(payload.user_id, payload.exercise_id)
+    return {"ok": True, "message": f"Ejercicio {payload.exercise_id} asignado al paciente {payload.user_id}"}
+
 
 @app.post("/completar_ejercicio/")
 def completar_ejercicio(payload: CompleteExercisePayload):
