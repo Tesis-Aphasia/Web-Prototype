@@ -26,6 +26,7 @@ app.add_middleware(
 class ContextPayload(BaseModel):
     context: str
     nivel: str
+    email: str
 
 class ContextGeneratePayload(BaseModel):
     context: str
@@ -37,10 +38,10 @@ class SRPayload(BaseModel):
     user_id: str
     profile: dict
 
-class CompletePayload(BaseModel):
-    user_id: str
-    exercise_id: str
-    success: bool = True  # si quieres más adelante distinguir si lo hizo bien o mal
+class CompleteExercisePayload(BaseModel):
+    email: str
+    id_ejercicio: str
+    contexto: str
 
 @app.get("/")
 def read_root():
@@ -48,7 +49,7 @@ def read_root():
 
 # Endpoint para generar un ejercicio dado un contexto - usado por el terapeuta
 @app.post("/context/generate")
-def create_exercise(payload: ContextPayload):
+def create_exercise(payload: ContextGeneratePayload):
     print("Payload recibido:", payload)
     #response = back.main(payload.context)
     response = main_langraph_vnest(payload.context, payload.nivel, payload.creado_por, payload.tipo)
@@ -57,20 +58,23 @@ def create_exercise(payload: ContextPayload):
 # Endpoint para asignar o buscar un ejercicio para el paciente - usado por la app móvil
 @app.post("/context/")
 def get_exercise_for_patient(payload: ContextPayload):
-    """
-    Endpoint para el paciente (app móvil).
-    Busca el ejercicio que le corresponde (asignado, nuevo o repaso)
-    según su historial en ejerciciosAsignados.
-    """
     try:
-        response = get_exercise_for_context(payload.user_id, payload.context)
+        print(f"📩 Payload recibido: {payload.dict()}")
+
+        response = get_exercise_for_context(payload.email, payload.context)
+
+        print(f"✅ Respuesta generada: {response}")
         return response
+
     except Exception as e:
+        print(f"❌ Error en get_exercise_for_patient: {e}")
         return {"error": str(e)}
+
 
 # Endpoint para generar tarjetas de Spaced Retrieval - usado al crear un paciente
 @app.post("/spaced-retrieval/")
 def create_sr_cards(payload: SRPayload):
+    print("Payload recibido:", payload)
     response = main_langraph_sr(payload.user_id, payload.profile)
     return response
 
@@ -89,40 +93,24 @@ def assign_exercise(payload: ContextPayload, exercise_id: str):
     except Exception as e:
         return {"error": str(e)}
 
-# Endpoint para completar un ejercicio - usado por la app móvil
-@app.post("/complete-exercise/")
-def complete_exercise(payload: CompletePayload):
-    """
-    Actualiza el estado del ejercicio asignado cuando el paciente lo completa.
-    """
+@app.post("/completar_ejercicio/")
+def completar_ejercicio(payload: CompleteExercisePayload):
     try:
-        patient_ref = db.collection("patients").document(payload.user_id)
-        assigned_ref = patient_ref.collection("ejerciciosAsignados").document(payload.exercise_id)
-        doc = assigned_ref.get()
+        patient_ref = db.collection("pacientes").document(payload.email)
+        ejercicios_ref = patient_ref.collection("ejercicios_asignados")
 
-        if not doc.exists:
-            return {"error": f"Ejercicio {payload.exercise_id} no encontrado para este paciente."}
+        # Buscar el ejercicio correspondiente
+        query = ejercicios_ref.where("id_ejercicio", "==", payload.id_ejercicio).where("contexto", "==", payload.contexto).stream()
 
-        data = doc.to_dict()
-        current_priority = data.get("prioridad", 1)
-        current_streak = data.get("veces_realizado", 0)
+        for doc in query:
+            ejercicios_ref.document(doc.id).update({
+                "estado": "completado",
+                "ultima_fecha_realizado": firestore.SERVER_TIMESTAMP,
+            })
+            return {"status": "success", "message": "Ejercicio completado"}
 
-        # Nueva prioridad (si fue exitoso, lo movemos al final de la cola)
-        new_priority = current_priority + 1 if payload.success else max(1, current_priority - 1)
-
-        # Actualizar documento
-        assigned_ref.update({
-            "estado": "completado",
-            "ultima_fecha": datetime.utcnow().isoformat(),
-            "veces_realizado": current_streak + 1,
-            "prioridad": new_priority
-        })
-
-        return {
-            "ok": True,
-            "message": "Ejercicio actualizado correctamente",
-            "new_priority": new_priority
-        }
+        return {"status": "error", "message": "Ejercicio no encontrado"}
 
     except Exception as e:
+        print(f"❌ Error en completar_ejercicio: {e}")
         return {"error": str(e)}
