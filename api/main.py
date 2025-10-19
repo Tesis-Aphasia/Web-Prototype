@@ -70,7 +70,7 @@ def create_exercise(payload: ContextGeneratePayload):
     return response
 
 # Endpoint para asignar o buscar un ejercicio para el paciente - usado por la app móvil
-@app.post("/context/")
+@app.post("/get_exercise_context/")
 def get_exercise_for_patient(payload: ContextPayload):
     try:
         print(f"Payload recibido: {payload.dict()}")
@@ -158,3 +158,9 @@ def get_verbs_for_context(payload: ContextOnlyPayload):
 
     verbs_list = list(verbs_dict.values())
     return {"context": context, "verbs": verbs_list}
+
+@app.get("/contexts")
+def get_contexts():
+    ejercicios = db.collection("ejercicios_VNEST").stream()
+    contextos = sorted(list({doc.to_dict().get("contexto") for doc in ejercicios if doc.to_dict().get("contexto")}))
+    return {"contexts": contextos}
