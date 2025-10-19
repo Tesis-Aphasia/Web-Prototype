@@ -73,15 +73,15 @@ def create_exercise(payload: ContextGeneratePayload):
 @app.post("/context/")
 def get_exercise_for_patient(payload: ContextPayload):
     try:
-        print(f"📩 Payload recibido: {payload.dict()}")
+        print(f"Payload recibido: {payload.dict()}")
 
         response = get_exercise_for_context(payload.email, payload.context, payload.verbo)
 
-        print(f"✅ Respuesta generada: {response}")
+        print(f"Respuesta generada: {response}")
         return response
 
     except Exception as e:
-        print(f"❌ Error en get_exercise_for_patient: {e}")
+        print(f"Error en get_exercise_for_patient: {e}")
         return {"error": str(e)}
 
 
@@ -107,39 +107,54 @@ def assign_exercise(payload: AssignPayload):
 
 @app.post("/completar_ejercicio/")
 def completar_ejercicio(payload: CompleteExercisePayload):
-    try:
-        patient_ref = db.collection("pacientes").document(payload.email)
-        ejercicios_ref = patient_ref.collection("ejercicios_asignados")
+    patient_ref = db.collection("pacientes").document(payload.email)
+    ejercicios_ref = patient_ref.collection("ejercicios_asignados")
+    # Buscar el ejercicio correspondiente
+    query = ejercicios_ref.where("id_ejercicio", "==", payload.id_ejercicio).where("contexto", "==", payload.contexto).stream()
+    for doc in query:
+        ejercicios_ref.document(doc.id).update({
+            "estado": "completado",
+            "ultima_fecha_realizado": firestore.SERVER_TIMESTAMP,
+        })
+        return {"status": "success", "message": "Ejercicio completado"}
 
-        # Buscar el ejercicio correspondiente
-        query = ejercicios_ref.where("id_ejercicio", "==", payload.id_ejercicio).where("contexto", "==", payload.contexto).stream()
-
-        for doc in query:
-            ejercicios_ref.document(doc.id).update({
-                "estado": "completado",
-                "ultima_fecha_realizado": firestore.SERVER_TIMESTAMP,
-            })
-            return {"status": "success", "message": "Ejercicio completado"}
-
-        return {"status": "error", "message": "Ejercicio no encontrado"}
-
-    except Exception as e:
-        print(f"❌ Error en completar_ejercicio: {e}")
-        return {"error": str(e)}
+    return {"status": "error", "message": "Ejercicio no encontrado"}
     
 @app.post("/context/verbs")
 def get_verbs_for_context(payload: ContextOnlyPayload):
     """
     Retorna los verbos únicos para un contexto dado.
-    No asigna todavía ningún ejercicio.
+    Incluye highlight=True si el paciente tiene ejercicios personalizados de ese verbo.
     """
     context = payload.context
 
-    # Traemos todos los ejercicios VNEST de ese contexto
+    #Traer todos los ejercicios VNEST del contexto
     exercises = db.collection("ejercicios_VNEST").where("contexto", "==", context).stream()
-    exercises_list = [doc.to_dict() for doc in exercises]
+    exercises_list = []
+    for doc in exercises:
+        data = doc.to_dict()
+        data["id"] = doc.id
+        exercises_list.append(data)
 
-    # Extraemos los verbos únicos
-    verbs = list({ex["verbo"] for ex in exercises_list if "verbo" in ex})
+    #Obtener verbos únicos con bandera highlight
+    verbs_dict = {}
+    for ex in exercises_list:
+        verbo = ex.get("verbo")
+        if not verbo:
+            continue
+        highlight = False
+        # Buscar si este ejercicio o su general está personalizado
+        general_id = ex.get("id_ejercicio_general")
+        if general_id:
+            ex_doc = db.collection("ejercicios").document(general_id).get()
+            if ex_doc.exists:
+                highlight = ex_doc.to_dict().get("personalizado", False)
 
-    return {"context": context, "verbs": verbs}
+        # Si ya está el verbo y uno tiene highlight=True, mantenerlo
+        if verbo in verbs_dict:
+            verbs_dict[verbo]["highlight"] = verbs_dict[verbo]["highlight"] or highlight
+        else:
+            verbs_dict[verbo] = {"verbo": verbo, "highlight": highlight}
+
+    verbs_list = list(verbs_dict.values())
+    return {"context": context, "verbs": verbs_list}

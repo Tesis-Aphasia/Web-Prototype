@@ -79,15 +79,39 @@ from prompts_vnest import (
 # ==============================
 # PROMPT RUNNER
 # ==============================
+import re, json
+
 def parse_json(raw: str):
     s = raw.strip()
+
+    # Si viene dentro de ```
     if s.startswith("```"):
         s = s.strip("`")
         start = s.find("{")
         end = s.rfind("}")
         if start != -1 and end != -1:
             s = s[start:end+1]
-    return json.loads(s)
+
+    # Limpieza defensiva: eliminar secuencias ilegales
+    s = s.replace("\n", " ").replace("\r", " ")
+    s = re.sub(r'“|”', '"', s)  # reemplazar comillas curvas
+    s = re.sub(r"'", '"', s)    # reemplazar comillas simples si hay JSON inconsistente
+    s = re.sub(r',(\s*[}\]])', r'\1', s)  # quitar comas finales sobrantes
+
+    try:
+        return json.loads(s)
+    except json.JSONDecodeError as e:
+        print("Error al decodificar JSON:", e)
+        print("Contenido truncado:", s[:1000])
+        # Intenta recortar hasta el último corchete cerrado
+        last_brace = s.rfind("}")
+        if last_brace != -1:
+            try:
+                return json.loads(s[:last_brace+1])
+            except Exception:
+                pass
+        raise e
+
 
 def run_prompt(prompt: str) -> Dict:
     client = get_client()
@@ -103,7 +127,7 @@ def run_prompt(prompt: str) -> Dict:
             {"role": "user", "content": prompt},
         ],
         temperature=0.4,
-        max_tokens=1500,
+        max_tokens=2100,
         response_format={"type": "json_object"},
     )
 
