@@ -77,15 +77,18 @@ def sentence_expansion(verbo: str, oraciones: list[dict]) -> str:
         "- Cada interrogante debe tener exactamente 4 opciones y solo 1 opción correcta.\n"
         "- Las opciones deben ser concretas y específicas al par (sujeto–verbo–objeto).\n"
         "- Mantén coherencia semántica con el verbo y las oraciones.\n"
+        "- Además, agrega una explicación corta (máx. 20 palabras) para CADA opción, indicando por qué es correcta o incorrecta.\n"
+        "- Ejemplo: 'opcion': 'En la cocina', 'explicacion': 'El chef suele trabajar en la cocina, por eso es correcta.'\n"
+        "- IMPORTANTE: No uses comillas dentro de las explicaciones. En lugar de eso, usa comillas simples (' ').\n"
         "- Responde SOLO con JSON válido.\n\n"
         "Formato requerido:\n"
         '{'
         f'"verbo":"{verbo}",'
         '"pares":['
         '{"sujeto":"string","objeto":"string","expansiones":{'
-        '"donde":{"opciones":["string","string","string","string"],"opcion_correcta":"string"},'
-        '"cuando":{"opciones":["string","string","string","string"],"opcion_correcta":"string"},'
-        '"por_que":{"opciones":["string","string","string","string"],"opcion_correcta":"string"}'
+        '"donde":{"opciones":["string","string","string","string"],"opcion_correcta":"string", "explicaciones":["string","string","string","string"]},'
+        '"cuando":{"opciones":["string","string","string","string"],"opcion_correcta":"string", "explicaciones":["string","string","string","string"]},'
+        '"por_que":{"opciones":["string","string","string","string"],"opcion_correcta":"string", "explicaciones":["string","string","string","string"]}'
         "}}]}"
     )
 
@@ -96,7 +99,7 @@ def generate_prompt(json_prev: dict) -> str:
         "No elimines ni cambies ninguna clave existente. Devuelve SOLO JSON válido.\n\n"
         f"JSON de entrada:\n{json.dumps(json_prev, ensure_ascii=False)}\n\n"
         "Requisitos para \"oraciones\":\n"
-        "- Usa el MISMO verbo del JSON de entrada.\n"
+        "- Usa el MISMO verbo del JSON de entrada.\n    "
         "- Crea EXACTAMENTE 10 oraciones simples (SVC).\n"
         "- Mezcla correctas e incorrectas.\n"
         "- Cada una: {\"oracion\":\"string\",\"correcta\":true|false}.\n\n"
@@ -104,6 +107,6 @@ def generate_prompt(json_prev: dict) -> str:
         "{"
         "  \"verbo\": \"string\","
         "  \"pares\": [ { \"sujeto\": \"string\", \"objeto\": \"string\", \"expansiones\": { ... } } ],"
-        "  \"oraciones\": [ { \"oracion\": \"string\", \"correcta\": true } ]"
+        "  \"oraciones\": [ { \"oracion\": \"string\", \"correcta\": true, \"explicacion\": \"string\" } ]"
         "}"
     )
