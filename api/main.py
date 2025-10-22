@@ -127,7 +127,7 @@ def completar_ejercicio(payload: CompleteExercisePayload):
         print(f"❌ Error en completar_ejercicio: {e}")
         return {"error": str(e)}
     
-@app.post("/context/verbs")
+@app.post("/context/verbs/")
 def get_verbs_for_context(payload: ContextOnlyPayload):
     """
     Retorna los verbos únicos para un contexto dado.
