@@ -56,6 +56,10 @@ class AssignPayload(BaseModel):
 class ContextOnlyPayload(BaseModel):
     context: str
 
+class ProfileStructurePayload(BaseModel):
+    user_id: str
+    raw_text: str
+
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
@@ -124,43 +128,75 @@ def completar_ejercicio(payload: CompleteExercisePayload):
 def get_verbs_for_context(payload: ContextOnlyPayload):
     """
     Retorna los verbos únicos para un contexto dado.
-    Incluye highlight=True si el paciente tiene ejercicios personalizados de ese verbo.
+    Incluye highlight=True solo si el paciente tiene ejercicios personalizados PENDIENTES.
     """
     context = payload.context
+    email = getattr(payload, "email", None)  # si se envía también el email desde el front
 
-    #Traer todos los ejercicios VNEST del contexto
     exercises = db.collection("ejercicios_VNEST").where("contexto", "==", context).stream()
-    exercises_list = []
-    for doc in exercises:
-        data = doc.to_dict()
-        data["id"] = doc.id
-        exercises_list.append(data)
+    exercises_list = [doc.to_dict() for doc in exercises]
 
-    #Obtener verbos únicos con bandera highlight
     verbs_dict = {}
+
     for ex in exercises_list:
         verbo = ex.get("verbo")
         if not verbo:
             continue
+
         highlight = False
-        # Buscar si este ejercicio o su general está personalizado
         general_id = ex.get("id_ejercicio_general")
+
+        # Verificar si el ejercicio base está personalizado
         if general_id:
             ex_doc = db.collection("ejercicios").document(general_id).get()
             if ex_doc.exists:
-                highlight = ex_doc.to_dict().get("personalizado", False)
+                base_data = ex_doc.to_dict()
+                highlight = base_data.get("personalizado", False)
 
-        # Si ya está el verbo y uno tiene highlight=True, mantenerlo
+        # 🔍 Si se envía email, verificar si el paciente ya completó su personalizado
+        if email and highlight:
+            assigned_ref = (
+                db.collection("pacientes")
+                .document(email)
+                .collection("ejercicios_asignados")
+                .where("contexto", "==", context)
+                .where("tipo", "==", "VNEST")
+                .where("estado", "==", "pendiente")
+                .stream()
+            )
+            assigned_list = [a.to_dict() for a in assigned_ref]
+
+            # Si no hay ejercicios pendientes de ese verbo, quitar highlight
+            still_pending = any(a.get("id_ejercicio") == ex.get("id") for a in assigned_list)
+            if not still_pending:
+                highlight = False
+
+        # Evitar duplicados, mantener highlight si ya era true
         if verbo in verbs_dict:
             verbs_dict[verbo]["highlight"] = verbs_dict[verbo]["highlight"] or highlight
+            if not verbs_dict[verbo].get("id_ejercicio_general") and general_id:
+                verbs_dict[verbo]["id_ejercicio_general"] = general_id
         else:
-            verbs_dict[verbo] = {"verbo": verbo, "highlight": highlight}
+            verbs_dict[verbo] = {
+                "verbo": verbo,
+                "highlight": highlight,
+                "id_ejercicio_general": general_id,
+            }
 
-    verbs_list = list(verbs_dict.values())
-    return {"context": context, "verbs": verbs_list}
+    return {"context": context, "verbs": list(verbs_dict.values())}
+
 
 @app.get("/contexts")
 def get_contexts():
     ejercicios = db.collection("ejercicios_VNEST").stream()
     contextos = sorted(list({doc.to_dict().get("contexto") for doc in ejercicios if doc.to_dict().get("contexto")}))
     return {"contexts": contextos}
+
+# Endpoint para estructurar información libre del perfil de un paciente
+@app.post("/profile/structure/")
+def structure_profile(payload: ProfileStructurePayload):
+    from main_profile_structure import main_profile_structure
+    response = main_profile_structure(payload.user_id, payload.raw_text)
+    # Imprimir respuesta para depuración
+    print("Respuesta generada:", response)
+    return response

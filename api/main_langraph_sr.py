@@ -43,23 +43,62 @@ class SRState(TypedDict, total=False):
 # ==============================
 # HELPERS FIRESTORE
 # ==============================
+import uuid
+
 def save_sr_cards(user_id: str, cards: List[Dict]):
-    col = db.collection("sr_cards")
-    for i, card in enumerate(cards):
-        doc_id = f"{user_id}-{i}"
-        col.document(doc_id).set({
-            "card_id": doc_id,
-            "user_id": user_id,
-            "stimulus": card["stimulus"],
-            "answer": card["answer"],
-            "category": card.get("category", "personal"),
-            "intervals_sec": [15, 30, 60, 120, 240],
+    col = db.collection("ejercicios_SR")
+
+    for card in cards:
+        # 🔹 Generar ID único tipo VNEST (ej. E4A2B7)
+        doc_id = f"E{uuid.uuid4().hex[:6].upper()}"
+
+        # 🔹 Datos del ejercicio SR
+        sr_data = {
+            "id_ejercicio_general": doc_id,
+            "pregunta": card.get("stimulus", ""),
+            "rta_correcta": card.get("answer", ""),
             "interval_index": 0,
+            "intervals_sec" : [15, 30, 60, 120, 300],
             "success_streak": 0,
             "lapses": 0,
             "next_due": 0,
             "status": "learning",
+        }
+
+        # 🔹 Guardar en la colección de ejercicios generales
+        db.collection("ejercicios").document(doc_id).set({
+            "id": doc_id,
+            "terapia": "SR",
+            "revisado": False,
+            "tipo": "privado",
+            "creado_por": "ia",
+            "personalizado": True,
+            "referencia_base": None,
+            "id_paciente": user_id,
+            "descripcion_adaptado": "",
+            "fecha_creacion": firestore.SERVER_TIMESTAMP,
         })
+
+        # 🔹 Guardar el ejercicio SR específico
+        col.document(doc_id).set(sr_data)
+
+        # 🔹 Registrar el ejercicio en el paciente
+        asignar_a_paciente(user_id, doc_id)
+
+def asignar_a_paciente(user_id: str, ejercicio_id: str):
+    asignados_ref = (
+        db.collection("pacientes")
+        .document(user_id)
+        .collection("ejercicios_asignados")
+    )
+
+    asignados_ref.document(ejercicio_id).set({
+        "id_ejercicio": ejercicio_id,
+        "tipo": "privado",
+        "estado": "pendiente",
+        "fecha_asignacion": firestore.SERVER_TIMESTAMP,
+    })
+
 
 # ==============================
 # PROMPT RUNNER
@@ -102,6 +141,7 @@ def main_langraph_sr(user_id: str, patient_profile: dict):
 
     save_sr_cards(user_id, cards)
 
+    # Devuelvo igual que antes para no romper nada aguas arriba
     return {"user_id": user_id, "cards": cards}
 
 if __name__ == "__main__":
