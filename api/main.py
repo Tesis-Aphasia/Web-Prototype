@@ -4,6 +4,8 @@ from pydantic import BaseModel
 import backTwo as back
 from datetime import datetime
 from firebase_admin import firestore
+from pydantic import BaseModel
+from typing import Optional, List, Dict
 
 # importamos la nueva función
 from main_langraph_vnest import main_langraph_vnest 
@@ -55,6 +57,7 @@ class AssignPayload(BaseModel):
 
 class ContextOnlyPayload(BaseModel):
     context: str
+    email: Optional[str] = None
 
 class ProfileStructurePayload(BaseModel):
     user_id: str
@@ -124,14 +127,15 @@ def completar_ejercicio(payload: CompleteExercisePayload):
 
     return {"status": "error", "message": "Ejercicio no encontrado"}
     
+
 @app.post("/context/verbs/")
 def get_verbs_for_context(payload: ContextOnlyPayload):
     """
     Retorna los verbos únicos para un contexto dado.
-    Incluye highlight=True solo si el paciente tiene ejercicios personalizados PENDIENTES.
+    Incluye highlight=True solo si el paciente tiene ejercicios personalizados pendientes.
     """
     context = payload.context
-    email = getattr(payload, "email", None)  # si se envía también el email desde el front
+    email = getattr(payload, "email", None)
 
     exercises = db.collection("ejercicios_VNEST").where("contexto", "==", context).stream()
     exercises_list = [doc.to_dict() for doc in exercises]
@@ -144,43 +148,27 @@ def get_verbs_for_context(payload: ContextOnlyPayload):
             continue
 
         highlight = False
-        general_id = ex.get("id_ejercicio_general")
 
-        # Verificar si el ejercicio base está personalizado
-        if general_id:
-            ex_doc = db.collection("ejercicios").document(general_id).get()
-            if ex_doc.exists:
-                base_data = ex_doc.to_dict()
-                highlight = base_data.get("personalizado", False)
-
-        # 🔍 Si se envía email, verificar si el paciente ya completó su personalizado
-        if email and highlight:
+        # 🔹 Si se envía email, verificar directamente en ejercicios_asignados
+        if email:
             assigned_ref = (
                 db.collection("pacientes")
                 .document(email)
                 .collection("ejercicios_asignados")
-                .where("contexto", "==", context)
-                .where("tipo", "==", "VNEST")
+                .where("personalizado", "==", True)
                 .where("estado", "==", "pendiente")
                 .stream()
             )
             assigned_list = [a.to_dict() for a in assigned_ref]
+            highlight = len(assigned_list) > 0
 
-            # Si no hay ejercicios pendientes de ese verbo, quitar highlight
-            still_pending = any(a.get("id_ejercicio") == ex.get("id") for a in assigned_list)
-            if not still_pending:
-                highlight = False
-
-        # Evitar duplicados, mantener highlight si ya era true
+        # Evitar duplicados y mantener highlight si ya era True
         if verbo in verbs_dict:
             verbs_dict[verbo]["highlight"] = verbs_dict[verbo]["highlight"] or highlight
-            if not verbs_dict[verbo].get("id_ejercicio_general") and general_id:
-                verbs_dict[verbo]["id_ejercicio_general"] = general_id
         else:
             verbs_dict[verbo] = {
                 "verbo": verbo,
                 "highlight": highlight,
-                "id_ejercicio_general": general_id,
             }
 
     return {"context": context, "verbs": list(verbs_dict.values())}
