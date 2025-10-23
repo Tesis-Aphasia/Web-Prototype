@@ -136,10 +136,16 @@ def run_prompt(prompt: str) -> Dict[str, Any]:
             {"role": "user", "content": prompt},
         ],
         temperature=0.4,
-        max_tokens=1500,
+        max_tokens=2100,
         response_format={"type": "json_object"},
     )
     content = resp.choices[0].message.content.strip()
+     # 🧠 DEBUG: imprime o guarda lo que devuelve el modelo
+    print("\n" + "="*80)
+    print("🔍 RAW MODEL RESPONSE (Azure OpenAI):")
+    print(content)
+    print("="*80 + "\n")
+
     return json.loads(content)
 
 # ==============================
