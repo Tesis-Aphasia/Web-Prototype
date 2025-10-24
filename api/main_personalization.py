@@ -136,7 +136,7 @@ def run_prompt(prompt: str) -> Dict[str, Any]:
             {"role": "user", "content": prompt},
         ],
         temperature=0.4,
-        max_tokens=2100,
+        max_tokens=3000,
         response_format={"type": "json_object"},
     )
     content = resp.choices[0].message.content.strip()
