@@ -4,6 +4,8 @@ from pydantic import BaseModel
 import backTwo as back
 from datetime import datetime
 from firebase_admin import firestore
+from pydantic import BaseModel
+from typing import Optional, List, Dict
 
 # importamos la nueva función
 from main_langraph_vnest import main_langraph_vnest 
@@ -55,6 +57,7 @@ class AssignPayload(BaseModel):
 
 class ContextOnlyPayload(BaseModel):
     context: str
+    email: Optional[str] = None
 
 class ProfileStructurePayload(BaseModel):
     user_id: str
@@ -124,64 +127,61 @@ def completar_ejercicio(payload: CompleteExercisePayload):
 
     return {"status": "error", "message": "Ejercicio no encontrado"}
     
+
 @app.post("/context/verbs/")
 def get_verbs_for_context(payload: ContextOnlyPayload):
     """
     Retorna los verbos únicos para un contexto dado.
-    Incluye highlight=True solo si el paciente tiene ejercicios personalizados PENDIENTES.
+    Incluye highlight=True solo si el PACIENTE tiene ejercicios personalizados pendientes
+    de ese contexto y verbo.
     """
     context = payload.context
-    email = getattr(payload, "email", None)  # si se envía también el email desde el front
+    email = getattr(payload, "email", None)
 
-    exercises = db.collection("ejercicios_VNEST").where("contexto", "==", context).stream()
-    exercises_list = [doc.to_dict() for doc in exercises]
+    # === 1️⃣ Obtener todos los ejercicios VNEST del contexto ===
+    vnest_docs = db.collection("ejercicios_VNEST").where("contexto", "==", context).stream()
+    vnest_list = [d.to_dict() | {"_id": d.id} for d in vnest_docs]
 
     verbs_dict = {}
-
-    for ex in exercises_list:
+    for ex in vnest_list:
         verbo = ex.get("verbo")
         if not verbo:
             continue
+        verbs_dict[verbo] = {"verbo": verbo, "highlight": False}
 
-        highlight = False
-        general_id = ex.get("id_ejercicio_general")
+    # === 2️⃣ Si no se envía email, no marcamos highlights ===
+    if not email:
+        return {"context": context, "verbs": list(verbs_dict.values())}
 
-        # Verificar si el ejercicio base está personalizado
-        if general_id:
-            ex_doc = db.collection("ejercicios").document(general_id).get()
-            if ex_doc.exists:
-                base_data = ex_doc.to_dict()
-                highlight = base_data.get("personalizado", False)
+    # === 3️⃣ Traer los ejercicios asignados al paciente ===
+    asignados_ref = db.collection("pacientes").document(email).collection("ejercicios_asignados").stream()
+    asignados = [a.to_dict() for a in asignados_ref]
 
-        # 🔍 Si se envía email, verificar si el paciente ya completó su personalizado
-        if email and highlight:
-            assigned_ref = (
-                db.collection("pacientes")
-                .document(email)
-                .collection("ejercicios_asignados")
-                .where("contexto", "==", context)
-                .where("tipo", "==", "VNEST")
-                .where("estado", "==", "pendiente")
-                .stream()
-            )
-            assigned_list = [a.to_dict() for a in assigned_ref]
+    # Filtrar solo los personalizados pendientes en este contexto
+    pendientes_ids = [
+        a.get("id_ejercicio")
+        for a in asignados
+        if a.get("personalizado") is True
+        and a.get("estado") == "pendiente"
+        and a.get("tipo") == "VNEST"
+        and a.get("contexto") == context
+    ]
 
-            # Si no hay ejercicios pendientes de ese verbo, quitar highlight
-            still_pending = any(a.get("id_ejercicio") == ex.get("id") for a in assigned_list)
-            if not still_pending:
-                highlight = False
+    if not pendientes_ids:
+        return {"context": context, "verbs": list(verbs_dict.values())}
 
-        # Evitar duplicados, mantener highlight si ya era true
+    # === 4️⃣ Identificar qué verbos corresponden a esos ejercicios personalizados ===
+    verbos_pendientes = set()
+    for ex in vnest_list:
+        if ex.get("_id") in pendientes_ids or ex.get("id_ejercicio_general") in pendientes_ids:
+            verbo = ex.get("verbo")
+            if verbo:
+                verbos_pendientes.add(verbo)
+
+    # === 5️⃣ Activar highlight solo en esos verbos ===
+    for verbo in verbos_pendientes:
         if verbo in verbs_dict:
-            verbs_dict[verbo]["highlight"] = verbs_dict[verbo]["highlight"] or highlight
-            if not verbs_dict[verbo].get("id_ejercicio_general") and general_id:
-                verbs_dict[verbo]["id_ejercicio_general"] = general_id
-        else:
-            verbs_dict[verbo] = {
-                "verbo": verbo,
-                "highlight": highlight,
-                "id_ejercicio_general": general_id,
-            }
+            verbs_dict[verbo]["highlight"] = True
 
     return {"context": context, "verbs": list(verbs_dict.values())}
 
