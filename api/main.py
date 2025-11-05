@@ -98,6 +98,7 @@ def structure_profile(payload: ProfileStructurePayload):
     print("Respuesta generada:", response)
     return response
 
+#TODO: QUITAR DE AQUÍ Y PONERLO COMO SERVICIO EN LA MOVIL
 # --- Obtener ejercicio VNEST por contexto
 @app.post("/get_exercise_context/")
 def get_exercise_for_patient(payload: ContextPayload):
@@ -110,6 +111,7 @@ def get_exercise_for_patient(payload: ContextPayload):
         print(f"Error en get_exercise_for_patient: {e}")
         return {"error": str(e)}
 
+#TODO: QUITAR DE AQUÍ Y PONERLO COMO SERVICIO EN LA MOVIL
 # --- Completar ejercicio asignado
 @app.post("/completar_ejercicio/")
 def completar_ejercicio(payload: CompleteExercisePayload):
@@ -126,6 +128,7 @@ def completar_ejercicio(payload: CompleteExercisePayload):
 
     return {"status": "error", "message": "Ejercicio no encontrado"}
 
+#TODO: QUITAR DE AQUÍ Y PONERLO COMO SERVICIO EN LA MOVIL
 # --- Obtener verbos de un contexto
 @app.post("/context/verbs/")
 def get_verbs_for_context(payload: ContextOnlyPayload):
@@ -181,7 +184,7 @@ def get_verbs_for_context(payload: ContextOnlyPayload):
 
     return {"context": context, "verbs": list(verbs_dict.values())}
 
-
+#TODO: QUITAR DE AQUÍ Y PONERLO COMO SERVICIO EN LA MOVIL
 # --- Obtener lista de contextos VNEST
 @app.get("/contexts")
 def get_contexts():
