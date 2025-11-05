@@ -71,7 +71,7 @@ def save_sr_cards(user_id: str, cards: List[Dict]):
             "terapia": "SR",
             "revisado": False,
             "tipo": "privado",
-            "creado_por": "ia",
+            "creado_por": "IA",
             "personalizado": True,
             "referencia_base": None,
             "id_paciente": user_id,

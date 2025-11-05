@@ -62,13 +62,13 @@ def main_profile_structure(user_id: str, raw_text: str):
     prompt = generate_profile_structure_prompt(raw_text, user_id)
     result = run_prompt(prompt)
 
-    # (Opcional) Guardar una copia estructurada del perfil
-    doc_ref = db.collection("perfiles_IA").document(user_id)
-    doc_ref.set({
-        "user_id": user_id,
-        "raw_text": raw_text,
-        "structured_profile": result,
-        "timestamp": firestore.SERVER_TIMESTAMP
-    })
+    # # (Opcional) Guardar una copia estructurada del perfil
+    # doc_ref = db.collection("perfiles_IA").document(user_id)
+    # doc_ref.set({
+    #     "user_id": user_id,
+    #     "raw_text": raw_text,
+    #     "structured_profile": result,
+    #     "timestamp": firestore.SERVER_TIMESTAMP
+    # })
 
     return {"ok": True, "user_id": user_id, "structured_profile": result}
