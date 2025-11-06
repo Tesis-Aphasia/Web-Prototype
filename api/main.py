@@ -9,7 +9,6 @@ from datetime import datetime
 from main_langraph_vnest import main_langraph_vnest
 from main_langraph_sr import main_langraph_sr
 from main_personalization import main_personalization
-from assign_logic import assign_exercise_to_patient, get_exercise_for_context
 
 app = FastAPI()
 db = firestore.client()
@@ -22,14 +21,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ========================
-#  MODELOS DE PAYLOAD
-# ========================
-class ContextPayload(BaseModel):
-    context: str
-    verbo: str
-    nivel: str
-    user_id: str  # 👈 reemplaza email
 
 class ContextGeneratePayload(BaseModel):
     context: str
@@ -41,23 +32,10 @@ class SRPayload(BaseModel):
     user_id: str
     profile: dict
 
-class CompleteExercisePayload(BaseModel):
-    user_id: str  # 👈 reemplaza email
-    id_ejercicio: str
-    contexto: str
-
 class PersonalizePayload(BaseModel):
     user_id: str
     exercise_id: str
     profile: dict
-
-class AssignPayload(BaseModel):
-    user_id: str
-    exercise_id: str
-
-class ContextOnlyPayload(BaseModel):
-    context: str
-    user_id: Optional[str] = None  # 👈 reemplaza email
 
 class ProfileStructurePayload(BaseModel):
     user_id: str
