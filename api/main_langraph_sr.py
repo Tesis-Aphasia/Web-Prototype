@@ -144,6 +144,21 @@ def main_langraph_sr(user_id: str, patient_profile: dict):
     # Devuelvo igual que antes para no romper nada aguas arriba
     return {"user_id": user_id, "cards": cards}
 
+def export_graph_mermaid_manual(out_path: str = "graphs/langgraph_sr.mmd") -> str:
+    mermaid = [
+        "flowchart TD",
+        "  START([Start]) --> build_prompt[build_prompt: genera prompt SR con perfil del paciente]",
+        "  build_prompt --> call_model[call_model: invoca Azure OpenAI con prompt SR]",
+        "  call_model --> parse_and_validate[parse_and_validate: limpia y valida JSON de salida]",
+        "  parse_and_validate --> persist[persist: guarda tarjetas en Firestore y asigna al paciente]",
+        "  persist --> END([Finish])",
+    ]
+    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write('\n'.join(mermaid))
+    return os.path.abspath(out_path)
+
+
 if __name__ == "__main__":
     # ejemplo con un perfil falso
     profile = {
@@ -154,3 +169,5 @@ if __name__ == "__main__":
     }
     res = main_langraph_sr("paciente123", profile)
     print(json.dumps(res, indent=2, ensure_ascii=False))
+    graph_path = export_graph_mermaid_manual()
+    print(f"Mermaid graph exported to: {graph_path}")
